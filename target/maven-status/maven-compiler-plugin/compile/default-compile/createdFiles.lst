@@ -2,5 +2,7 @@ com/abiogenesis/simulation/PrimordialSoup.class
 com/abiogenesis/Main.class
 com/abiogenesis/model/Atom.class
 com/abiogenesis/model/Position.class
+com/abiogenesis/gui/Launcher.class
 com/abiogenesis/model/Molecule.class
 com/abiogenesis/gui/SimulationView.class
+com/abiogenesis/gui/AminoAcidChainView.class

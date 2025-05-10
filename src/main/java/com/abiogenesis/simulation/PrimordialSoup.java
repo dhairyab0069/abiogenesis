@@ -135,4 +135,26 @@ public class PrimordialSoup {
     public int getReactionsThisStep() {
         return reactionsThisStep;
     }
+
+    public void setWidth(int width) {
+        if (this.width > 0 && width > 0 && this.width != width) {
+            double scale = (double) width / this.width;
+            for (Molecule molecule : molecules) {
+                double newX = molecule.getPosition().getX() * scale;
+                molecule.getPosition().setX(newX);
+            }
+        }
+        this.width = width;
+    }
+
+    public void setHeight(int height) {
+        if (this.height > 0 && height > 0 && this.height != height) {
+            double scale = (double) height / this.height;
+            for (Molecule molecule : molecules) {
+                double newY = molecule.getPosition().getY() * scale;
+                molecule.getPosition().setY(newY);
+            }
+        }
+        this.height = height;
+    }
 } 

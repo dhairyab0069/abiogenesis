@@ -4,6 +4,38 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
+## 0. Main Menu/Launcher for Simulation Selection
+
+**Logic:**
+- Provide a starting interface where users can choose between different simulation modes (e.g., molecule simulation or amino acid chain simulation).
+- Allow switching between simulations without restarting the application.
+
+**Scientific Context:**
+- Facilitates modular exploration of different abiogenesis scenarios and models.
+- Encourages comparative study and user-driven experimentation.
+
+**Implementation Notes:**
+- Create a main menu window with buttons for each simulation type.
+- Implement logic to launch the selected simulation and return to the menu.
+
+---
+
+## 0. Amino Acid Chain Simulation UI
+
+**Logic:**
+- Dedicated interface for generating, displaying, and interacting with random amino acid chains.
+- Allows users to observe chain properties and regeneration.
+
+**Scientific Context:**
+- Enables focused study of polypeptide diversity and sequence statistics.
+- Lays groundwork for future integration with the main simulation.
+
+**Implementation Notes:**
+- Build a new JavaFX view for amino acid chains.
+- Display generated chains, their lengths, and provide controls for regeneration.
+
+---
+
 ## 1. Basic Molecular Structure Representation
 
 **Logic:**

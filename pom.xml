@@ -74,7 +74,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.0.0</version>
                 <configuration>
-                    <mainClass>com.abiogenesis.Main</mainClass>
+                        <mainClass>com.abiogenesis.gui.Launcher</mainClass>
                     <arguments>
                         <argument>--module-path</argument>
                         <argument>${project.build.directory}/dependency</argument>

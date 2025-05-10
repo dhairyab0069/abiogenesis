@@ -49,6 +49,20 @@ public class SimulationView {
         stage.setScene(scene);
         stage.show();
 
+        // Make canvas and simulation fit the window
+        scene.widthProperty().addListener((obs, oldVal, newVal) -> {
+            double width = newVal.doubleValue();
+            canvas.setWidth(width);
+            soup.setWidth((int) width);
+            draw();
+        });
+        scene.heightProperty().addListener((obs, oldVal, newVal) -> {
+            double height = newVal.doubleValue();
+            canvas.setHeight(height);
+            soup.setHeight((int) height);
+            draw();
+        });
+
         // Add mouse move listener for tooltips
         canvas.setOnMouseMoved(event -> {
             double x = event.getX();

@@ -1,6 +1,8 @@
 /Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/Main.java
 /Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/model/Atom.java
+/Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/gui/Launcher.java
 /Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/model/Position.java
 /Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/gui/SimulationView.java
 /Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/model/Molecule.java
+/Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/gui/AminoAcidChainView.java
 /Users/dhairyabhatia/abiogenesis/src/main/java/com/abiogenesis/simulation/PrimordialSoup.java
