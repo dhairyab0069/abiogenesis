@@ -15,11 +15,19 @@ public class SimulationView {
     private final Canvas canvas;
     private final GraphicsContext gc;
     private boolean isRunning = false;
+    private static final int FPS = 60; // Increased FPS for smoother animation
+    private static final double BASE_MOLECULE_SIZE = 6.0;
 
     public SimulationView(PrimordialSoup soup) {
         this.soup = soup;
         this.canvas = new Canvas(soup.getWidth(), soup.getHeight());
         this.gc = canvas.getGraphicsContext2D();
+        setupCanvas();
+    }
+
+    private void setupCanvas() {
+        gc.setLineWidth(1.0);
+        gc.setStroke(Color.WHITE);
     }
 
     public void show(Stage stage) {
@@ -40,7 +48,7 @@ public class SimulationView {
                 soup.simulateStep();
                 Platform.runLater(this::draw);
                 try {
-                    Thread.sleep(100); // 10 FPS
+                    Thread.sleep(1000 / FPS); // 60 FPS
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
@@ -50,28 +58,39 @@ public class SimulationView {
     }
 
     private void draw() {
-        // Clear canvas
-        gc.setFill(Color.BLACK);
+        // Clear canvas with a dark background
+        gc.setFill(Color.rgb(10, 10, 20)); // Dark blue-black background
         gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        // Draw molecules
+        // Draw molecules with glow effect
         for (Molecule molecule : soup.getMolecules()) {
             double x = molecule.getPosition().getX();
             double y = molecule.getPosition().getY();
+            double size = BASE_MOLECULE_SIZE + (molecule.getEnergy() * 2);
             
-            // Color based on molecule type
+            // Determine molecule color
+            Color color;
             switch (molecule.getName()) {
                 case "H2O":
-                    gc.setFill(Color.BLUE);
+                    color = Color.AQUA;
                     break;
                 case "CH4":
-                    gc.setFill(Color.GREEN);
+                    color = Color.LIGHTGREEN;
+                    break;
+                case "CH3OH":
+                    color = Color.PURPLE;
                     break;
                 default:
-                    gc.setFill(Color.WHITE);
+                    color = Color.WHITE;
             }
+
+            // Draw glow effect
+            gc.setFill(color.deriveColor(1, 1, 1, 0.3));
+            gc.fillOval(x - size * 0.7, y - size * 0.7, size * 1.4, size * 1.4);
             
-            gc.fillOval(x - 5, y - 5, 10, 10);
+            // Draw molecule
+            gc.setFill(color);
+            gc.fillOval(x - size * 0.5, y - size * 0.5, size, size);
         }
     }
 

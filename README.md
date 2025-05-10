@@ -7,12 +7,12 @@ This project simulates the process of abiogenesis - the natural process by which
 - `src/main/java/com/abiogenesis/`
   - `model/` - Contains basic model classes
     - `Atom.java` - Represents atomic elements
-    - `Molecule.java` - Represents chemical molecules
+    - `Molecule.java` - Represents chemical molecules with energy levels
     - `Position.java` - Represents spatial coordinates
   - `simulation/` - Contains simulation logic
-    - `PrimordialSoup.java` - Main simulation environment
+    - `PrimordialSoup.java` - Main simulation environment with temperature effects
   - `gui/` - Contains visualization components
-    - `SimulationView.java` - JavaFX-based visualization
+    - `SimulationView.java` - JavaFX-based visualization with glow effects
   - `Main.java` - Entry point for the simulation
 
 ## Implementation Phases
@@ -23,6 +23,11 @@ This project simulates the process of abiogenesis - the natural process by which
 - [x] Initial chemical reaction framework
 - [x] Temperature and pH environment parameters
 - [x] Basic GUI visualization
+- [x] Temperature-dependent Brownian motion
+- [x] Collision detection
+- [x] Energy-based molecule properties
+- [x] High frame rate animation (target 60 FPS)
+- [x] Mac M1/M2 compatibility
 - [ ] Random amino acid chain generation
 - [ ] Pattern emergence tracking (e.g., "METHINKS")
 - [ ] Mutation and combination mechanisms
@@ -78,27 +83,32 @@ This project simulates the process of abiogenesis - the natural process by which
 
 - Java 17 or higher
 - Maven 3.6 or higher
-- JavaFX 17.0.2 or higher
+- JavaFX 21.0.2 (Mac M1/M2 specific)
 
 ## Building and Running
 
 1. Clone the repository
 2. Build the project:
    ```bash
-   mvn clean install
+   mvn clean package
    ```
 3. Run the simulation:
    ```bash
-   mvn javafx:run
+   mvn exec:java
    ```
 
 ## Current Features
 
 - Basic molecular simulation with H2O and CH4 molecules
 - Real-time visualization using JavaFX
-- Simple chemical reaction framework
+- Simple chemical reaction framework (H2O + CH4 → CH3OH)
 - Spatial positioning and collision detection
 - Temperature and pH environment parameters
+- Temperature-dependent Brownian motion
+- Dynamic molecule visualization with glow effects
+- Energy-based molecule sizing
+- High frame rate animation (target 60 FPS)
+- Mac M1/M2 optimized
 
 ## Future Development
 
