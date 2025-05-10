@@ -121,23 +121,4 @@ The project is actively being developed according to the phase plan above. Each 
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## Running the Application
-
-You can now launch the simulation via a main menu/launcher that lets you choose between the Molecule Simulation and the Amino Acid Chain Simulation.
-
-### From the command line (Maven):
-```bash
-mvn exec:java -Dexec.mainClass="com.abiogenesis.gui.Launcher"
-```
-
-### From an IDE:
-- Open `Launcher.java` in your IDE.
-- Right-click and select **Run** (or use the IDE's run button).
-
-### What you'll see:
-- A window with two buttons:
-  - **Molecule Simulation**: Launches the original molecule simulation GUI, now with molecules automatically initialized (no need to add them manually).
-  - **Amino Acid Chain Simulation**: Launches the (stub) amino acid chain simulation UI.
-- You can switch between simulation modes by returning to the launcher (future feature). 
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change. 
