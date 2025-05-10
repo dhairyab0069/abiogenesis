@@ -28,6 +28,7 @@ This project simulates the process of abiogenesis - the natural process by which
 - [x] Energy-based molecule properties
 - [x] High frame rate animation (target 60 FPS)
 - [x] Mac M1/M2 compatibility
+- [x] Interactive tooltips for molecule details in GUI
 - [ ] Random amino acid chain generation
 - [ ] Pattern emergence tracking (e.g., "METHINKS")
 - [ ] Mutation and combination mechanisms
@@ -110,6 +111,7 @@ This project simulates the process of abiogenesis - the natural process by which
 - Energy-based molecule sizing
 - High frame rate animation (target 60 FPS)
 - Mac M1/M2 optimized
+- **Interactive tooltips:** Hover over a molecule in the GUI to see its type, energy, position, atomic composition, and structure
 
 ## Future Development
 

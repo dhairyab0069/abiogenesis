@@ -14,6 +14,8 @@ public class PrimordialSoup {
     private int height;
     private Random random;
     private static final double MOVEMENT_SPEED = 2.0;
+    private int totalReactions = 0;
+    private int reactionsThisStep = 0;
 
     public PrimordialSoup(int width, int height, double temperature, double pH) {
         this.width = width;
@@ -31,6 +33,8 @@ public class PrimordialSoup {
     }
 
     public void simulateStep() {
+        reactionsThisStep = 0; // Reset reaction counter for this step
+        
         // Move molecules randomly
         for (Molecule molecule : molecules) {
             moveRandomly(molecule);
@@ -54,6 +58,10 @@ public class PrimordialSoup {
                         Molecule product = new Molecule("CH3OH", m1.getEnergy() + m2.getEnergy() - 0.5);
                         product.setPosition(m1.getPosition()); // Product forms at location of first reactant
                         molecules.add(product);
+                        
+                        // Update reaction counters
+                        totalReactions++;
+                        reactionsThisStep++;
                         
                         // Break inner loop since m1 was removed
                         break;
@@ -118,5 +126,13 @@ public class PrimordialSoup {
 
     public int getHeight() {
         return height;
+    }
+
+    public int getTotalReactions() {
+        return totalReactions;
+    }
+
+    public int getReactionsThisStep() {
+        return reactionsThisStep;
     }
 } 
