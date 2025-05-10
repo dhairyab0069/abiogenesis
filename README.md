@@ -33,6 +33,7 @@ This project simulates the process of abiogenesis - the natural process by which
 - [ ] Mutation and combination mechanisms
 
 ### 🔄 Phase 2: Environmental Dynamics
+- [ ] User Controls
 - [ ] Grid-based environment implementation
 - [ ] Environmental cycles:
   - [ ] Wet/dry cycles
