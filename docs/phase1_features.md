@@ -4,7 +4,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 0. Main Menu/Launcher for Simulation Selection
+## 1. Main Menu/Launcher for Simulation Selection
 
 **Logic:**
 - Provide a starting interface where users can choose between different simulation modes (e.g., molecule simulation or amino acid chain simulation).
@@ -20,7 +20,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 0. Amino Acid Chain Simulation UI
+## 2. Amino Acid Chain Simulation UI
 
 **Logic:**
 - Dedicated interface for generating, displaying, and interacting with random amino acid chains.
@@ -36,7 +36,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 1. Basic Molecular Structure Representation
+## 3. Basic Molecular Structure Representation
 
 **Logic:**
 - Represent molecules as collections of atoms, each with properties like element type, atomic number, and mass.
@@ -53,7 +53,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 2. Simple Spatial Positioning System
+## 4. Simple Spatial Positioning System
 
 **Logic:**
 - Each molecule has a position in a 2D environment (x, y coordinates).
@@ -69,7 +69,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 3. Initial Chemical Reaction Framework
+## 5. Initial Chemical Reaction Framework
 
 **Logic:**
 - Allow molecules to interact and react when close together and with sufficient energy.
@@ -85,7 +85,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 4. Temperature and pH Environment Parameters
+## 6. Temperature and pH Environment Parameters
 
 **Logic:**
 - The environment has a temperature (affecting movement) and pH (potentially affecting reactions).
@@ -101,7 +101,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 5. Basic GUI Visualization
+## 7. Basic GUI Visualization
 
 **Logic:**
 - Visualize molecules as colored circles on a 2D canvas.
@@ -117,7 +117,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 6. Temperature-Dependent Brownian Motion
+## 8. Temperature-Dependent Brownian Motion
 
 **Logic:**
 - Molecules move randomly, with speed proportional to temperature.
@@ -133,7 +133,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 7. Collision Detection
+## 9. Collision Detection
 
 **Logic:**
 - Detect when molecules are close enough to interact or react.
@@ -149,7 +149,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 8. Energy-Based Molecule Properties
+## 10. Energy-Based Molecule Properties
 
 **Logic:**
 - Each molecule has an energy value, affecting its behavior and reactions.
@@ -165,7 +165,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 9. High Frame Rate Animation (target 60 FPS)
+## 11. High Frame Rate Animation (target 60 FPS)
 
 **Logic:**
 - Run the simulation and visualization at a high frame rate for smooth animation.
@@ -179,7 +179,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 10. Mac M1/M2 Compatibility
+## 12. Mac M1/M2 Compatibility
 
 **Logic:**
 - Ensure the simulation runs smoothly on Apple Silicon (M1/M2) Macs.
@@ -192,7 +192,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 11. Interactive Tooltips for Molecule Details in GUI
+## 13. Interactive Tooltips for Molecule Details in GUI
 
 **Logic:**
 - Show detailed information about a molecule when hovering over it in the GUI.
@@ -207,7 +207,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 12. Random Amino Acid Chain Generation
+## 14. Random Amino Acid Chain Generation
 
 **Logic:**
 - Generate random sequences of amino acids, simulating prebiotic polypeptide formation.
@@ -221,7 +221,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 13. Pattern Emergence Tracking (e.g., "METHINKS")
+## 15. Pattern Emergence Tracking (e.g., "METHINKS")
 
 **Logic:**
 - Track the appearance of specific sequences in the population of chains.
@@ -235,7 +235,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 
 ---
 
-## 14. Mutation and Combination Mechanisms
+## 16. Mutation and Combination Mechanisms
 
 **Logic:**
 - Introduce mutations (substitution, insertion, deletion) and recombination (crossover) in chains.
