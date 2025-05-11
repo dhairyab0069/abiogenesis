@@ -101,23 +101,40 @@ This project simulates the process of abiogenesis(from a layman's perspective) -
    mvn exec:java -Dexec.mainClass="com.abiogenesis.gui.Launcher"
    ```
 
-## Current Features
+## Current Features (Phase 1 In Progress)
 
-- Basic molecular simulation with H2O and CH4 molecules
-- Real-time visualization using JavaFX
-- Simple chemical reaction framework (H2O + CH4 → CH3OH)
-- Spatial positioning and collision detection
-- Temperature and pH environment parameters
-- Temperature-dependent Brownian motion
-- Dynamic molecule visualization with glow effects
-- Energy-based molecule sizing
-- High frame rate animation (target 60 FPS)
-- Mac M1/M2 optimized
-- **Interactive tooltips:** Hover over a molecule in the GUI to see its type, energy, position, atomic composition, and structure
+- **Amino Acid Generation Only:**
+  - The simulation currently generates random amino acid chains in a 2D environment.
+  - Generation is capped (max 50 chains) and occurs at a slow, controlled rate.
+  - No degradation or reactions are active in this phase.
 
-## Future Development
+- **Main Menu / Launcher:**
+  - Users can select between the main simulation and the amino acid chain simulation UI from a launcher window.
 
-The project is actively being developed according to the phase plan above. Each phase builds upon the previous one, gradually increasing the complexity and realism of the simulation.
+- **Amino Acid Chain Simulation UI:**
+  - Dedicated interface for generating and inspecting random amino acid chains.
+
+- **Visualization:**
+  - JavaFX-based GUI displays amino acid chains as colored circles.
+  - Color is based on chain length.
+  - Interactive tooltips show sequence, length, energy, and atomic composition.
+  - Debug statistics (FPS, molecule counts, temperature, pH) are printed to the console.
+  - Window resizing is supported, with molecule positions rescaled accordingly.
+
+- **Architecture:**
+  - Modular, layered, and MVC-inspired for easy extension.
+  - Codebase is ready for future phases (e.g., enabling reactions, degradation, environmental effects).
+
+- **Documentation:**
+  - Up-to-date README and detailed feature documentation in `docs/phase1_features.md`.
+
+## Next Steps
+- Enable molecule reactions and degradation in future phases.
+- Add environmental dynamics and evolutionary features.
+
+---
+
+For more details, see `docs/phase1_features.md`.
 
 ## Contributing
 

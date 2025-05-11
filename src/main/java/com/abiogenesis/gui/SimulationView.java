@@ -1,6 +1,7 @@
 package com.abiogenesis.gui;
 
 import com.abiogenesis.model.Molecule;
+import com.abiogenesis.model.AminoAcidMolecule;
 import com.abiogenesis.simulation.PrimordialSoup;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -74,7 +75,14 @@ public class SimulationView {
                 double size = BASE_MOLECULE_SIZE + (molecule.getEnergy() * 2);
                 if (Math.hypot(x - moleculeX, y - moleculeY) < size) {
                     StringBuilder tooltipText = new StringBuilder();
-                    tooltipText.append(String.format("Molecule: %s\n", molecule.getName()));
+                    if (molecule instanceof AminoAcidMolecule) {
+                        AminoAcidMolecule aa = (AminoAcidMolecule) molecule;
+                        tooltipText.append(String.format("Amino Acid Chain\n"));
+                        tooltipText.append(String.format("Sequence: %s\n", aa.getSequence()));
+                        tooltipText.append(String.format("Length: %d\n", aa.getSequence().length()));
+                    } else {
+                        tooltipText.append(String.format("Molecule: %s\n", molecule.getName()));
+                    }
                     tooltipText.append(String.format("Energy: %.2f\n", molecule.getEnergy()));
                     tooltipText.append(String.format("Position: (%.1f, %.1f)\n", 
                         molecule.getPosition().getX(), molecule.getPosition().getY()));
@@ -84,17 +92,20 @@ public class SimulationView {
                         atomCounts.merge(atom.getElement(), 1, Integer::sum));
                     atomCounts.forEach((element, count) -> 
                         tooltipText.append(String.format("  %s: %d\n", element, count)));
-                    tooltipText.append("\nStructure:\n");
-                    switch (molecule.getName()) {
-                        case "H2O":
-                            tooltipText.append("  H-O-H (Bent)\n");
-                            break;
-                        case "CH4":
-                            tooltipText.append("  Tetrahedral\n");
-                            break;
-                        case "CH3OH":
-                            tooltipText.append("  H3C-OH (Methyl Alcohol)\n");
-                            break;
+                    
+                    if (!(molecule instanceof AminoAcidMolecule)) {
+                        tooltipText.append("\nStructure:\n");
+                        switch (molecule.getName()) {
+                            case "H2O":
+                                tooltipText.append("  H-O-H (Bent)\n");
+                                break;
+                            case "CH4":
+                                tooltipText.append("  Tetrahedral\n");
+                                break;
+                            case "CH3OH":
+                                tooltipText.append("  H3C-OH (Methyl Alcohol)\n");
+                                break;
+                        }
                     }
                     moleculeTooltip.setText(tooltipText.toString());
                     moleculeTooltip.setStyle("-fx-font-size: 12px;");
@@ -189,18 +200,25 @@ public class SimulationView {
             
             // Determine molecule color
             Color color;
-            switch (molecule.getName()) {
-                case "H2O":
-                    color = Color.AQUA;
-                    break;
-                case "CH4":
-                    color = Color.LIGHTGREEN;
-                    break;
-                case "CH3OH":
-                    color = Color.PURPLE;
-                    break;
-                default:
-                    color = Color.WHITE;
+            if (molecule instanceof AminoAcidMolecule) {
+                AminoAcidMolecule aa = (AminoAcidMolecule) molecule;
+                // Color based on chain length
+                double hue = (aa.getSequence().length() * 20) % 360;
+                color = Color.hsb(hue, 0.8, 1.0);
+            } else {
+                switch (molecule.getName()) {
+                    case "H2O":
+                        color = Color.AQUA;
+                        break;
+                    case "CH4":
+                        color = Color.LIGHTGREEN;
+                        break;
+                    case "CH3OH":
+                        color = Color.PURPLE;
+                        break;
+                    default:
+                        color = Color.WHITE;
+                }
             }
 
             // Draw glow effect

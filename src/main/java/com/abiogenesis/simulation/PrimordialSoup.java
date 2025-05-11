@@ -1,6 +1,8 @@
 package com.abiogenesis.simulation;
 
 import com.abiogenesis.model.Molecule;
+import com.abiogenesis.model.AminoAcidMolecule;
+
 import com.abiogenesis.model.Position;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +18,11 @@ public class PrimordialSoup {
     private static final double MOVEMENT_SPEED = 2.0;
     private int totalReactions = 0;
     private int reactionsThisStep = 0;
+    private static final int INITIAL_AMINO_ACIDS = 20;
+    
+    // Generation parameters
+    private static final double AMINO_ACID_GENERATION_RATE = 0.005; // Slower generation
+    private static final int MAX_AMINO_ACIDS = 50; // Temporary threshold
 
     public PrimordialSoup(int width, int height, double temperature, double pH) {
         this.width = width;
@@ -24,6 +31,31 @@ public class PrimordialSoup {
         this.pH = pH;
         this.molecules = new ArrayList<>();
         this.random = new Random();
+        
+        // Initialize with some amino acid molecules
+        for (int i = 0; i < INITIAL_AMINO_ACIDS; i++) {
+            AminoAcidMolecule aa = AminoAcidMolecule.generateRandom(1, 3);
+            aa.getPosition().setX(random.nextDouble() * width);
+            aa.getPosition().setY(random.nextDouble() * height);
+            molecules.add(aa);
+        }
+    }
+
+    private void generateAminoAcids() {
+        // Count current amino acids
+        int aminoAcidCount = 0;
+        for (Molecule m : molecules) {
+            if (m instanceof AminoAcidMolecule) {
+                aminoAcidCount++;
+            }
+        }
+        // Generate new amino acids if under threshold
+        if (aminoAcidCount < MAX_AMINO_ACIDS && random.nextDouble() < AMINO_ACID_GENERATION_RATE) {
+            AminoAcidMolecule newAA = AminoAcidMolecule.generateRandom(1, 3);
+            newAA.getPosition().setX(random.nextDouble() * width);
+            newAA.getPosition().setY(random.nextDouble() * height);
+            molecules.add(newAA);
+        }
     }
 
     public void addMolecule(Molecule molecule) {
@@ -35,40 +67,14 @@ public class PrimordialSoup {
     public void simulateStep() {
         reactionsThisStep = 0; // Reset reaction counter for this step
         
+        // Only generate amino acids
+        generateAminoAcids();
+        
         // Move molecules randomly
         for (Molecule molecule : molecules) {
             moveRandomly(molecule);
         }
-
-        // Simulate molecular interactions
-        for (int i = 0; i < molecules.size(); i++) {
-            for (int j = i + 1; j < molecules.size(); j++) {
-                Molecule m1 = molecules.get(i);
-                Molecule m2 = molecules.get(j);
-                
-                // Check for potential reactions based on proximity and energy
-                if (shouldReact(m1, m2)) {
-                    // Simple reaction - combine molecules if conditions are right
-                    if (m1.getName().equals("H2O") && m2.getName().equals("CH4")) {
-                        // Remove reactants
-                        molecules.remove(m2);
-                        molecules.remove(m1);
-                        
-                        // Create new molecule as product
-                        Molecule product = new Molecule("CH3OH", m1.getEnergy() + m2.getEnergy() - 0.5);
-                        product.setPosition(m1.getPosition()); // Product forms at location of first reactant
-                        molecules.add(product);
-                        
-                        // Update reaction counters
-                        totalReactions++;
-                        reactionsThisStep++;
-                        
-                        // Break inner loop since m1 was removed
-                        break;
-                    }
-                }
-            }
-        }
+        // No degradation or reactions in this phase
     }
 
     private void moveRandomly(Molecule molecule) {
@@ -85,14 +91,6 @@ public class PrimordialSoup {
         
         pos.setX(newX);
         pos.setY(newY);
-    }
-
-    private boolean shouldReact(Molecule m1, Molecule m2) {
-        double distance = m1.getPosition().distanceTo(m2.getPosition());
-        double energyThreshold = 1.0; // Arbitrary threshold for now
-        
-        return distance < energyThreshold && 
-               (m1.getEnergy() + m2.getEnergy()) > energyThreshold;
     }
 
     private boolean isValidPosition(Position pos) {
