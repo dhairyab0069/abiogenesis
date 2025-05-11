@@ -23,6 +23,9 @@ public class PrimordialSoup {
     // Generation parameters
     private static final double AMINO_ACID_GENERATION_RATE = 0.005; // Slower generation
     private static final int MAX_AMINO_ACIDS = 50; // Temporary threshold
+    private static final String TARGET_PATTERN = "METHINKS";
+    private static final double MUTATION_RATE = 0.01; // 1% chance per step per chain
+    private static final double COMBINATION_RATE = 0.01; // 1% chance per step per pair
 
     public PrimordialSoup(int width, int height, double temperature, double pH) {
         this.width = width;
@@ -70,11 +73,67 @@ public class PrimordialSoup {
         // Only generate amino acids
         generateAminoAcids();
         
+        // --- Mutation ---
+        List<Molecule> mutatedMolecules = new ArrayList<>();
+        for (Molecule molecule : molecules) {
+            if (molecule instanceof AminoAcidMolecule) {
+                AminoAcidMolecule aa = (AminoAcidMolecule) molecule;
+                double r = random.nextDouble();
+                if (r < MUTATION_RATE) {
+                    int mutType = random.nextInt(3);
+                    AminoAcidMolecule mutated;
+                    if (mutType == 0) mutated = aa.mutateSubstitution();
+                    else if (mutType == 1) mutated = aa.mutateInsertion();
+                    else mutated = aa.mutateDeletion();
+                    mutated.getPosition().setX(aa.getPosition().getX());
+                    mutated.getPosition().setY(aa.getPosition().getY());
+                    mutatedMolecules.add(mutated);
+                } else {
+                    mutatedMolecules.add(aa);
+                }
+            } else {
+                mutatedMolecules.add(molecule);
+            }
+        }
+        molecules = mutatedMolecules;
+        
+        // --- Combination (crossover) ---
+        List<Molecule> currentMolecules = new ArrayList<>(molecules);
+        int combinations = 0;
+        int maxCombinations = 10;
+        while (combinations < maxCombinations && molecules.size() < MAX_AMINO_ACIDS) {
+            if (currentMolecules.size() < 2) break;
+            int i = random.nextInt(currentMolecules.size());
+            int j = random.nextInt(currentMolecules.size());
+            if (i == j) continue;
+            Molecule m1 = currentMolecules.get(i);
+            Molecule m2 = currentMolecules.get(j);
+            if (m1 instanceof AminoAcidMolecule && m2 instanceof AminoAcidMolecule) {
+                if (random.nextDouble() < COMBINATION_RATE) {
+                    AminoAcidMolecule aa1 = (AminoAcidMolecule) m1;
+                    AminoAcidMolecule aa2 = (AminoAcidMolecule) m2;
+                    AminoAcidMolecule child = aa1.crossover(aa2);
+                    child.getPosition().setX((aa1.getPosition().getX() + aa2.getPosition().getX()) / 2.0);
+                    child.getPosition().setY((aa1.getPosition().getY() + aa2.getPosition().getY()) / 2.0);
+                    molecules.add(child);
+                    combinations++;
+                }
+            }
+        }
+        
         // Move molecules randomly
         for (Molecule molecule : molecules) {
             moveRandomly(molecule);
         }
-        // No degradation or reactions in this phase
+        // --- Pattern Emergence Tracking ---
+        for (Molecule molecule : molecules) {
+            if (molecule instanceof AminoAcidMolecule) {
+                AminoAcidMolecule aa = (AminoAcidMolecule) molecule;
+                if (aa.getSequence().contains(TARGET_PATTERN)) {
+                    System.out.println("Pattern '" + TARGET_PATTERN + "' found in chain: " + aa.getSequence());
+                }
+            }
+        }
     }
 
     private void moveRandomly(Molecule molecule) {

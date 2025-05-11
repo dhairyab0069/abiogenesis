@@ -60,4 +60,38 @@ public class AminoAcidMolecule extends Molecule {
         // Longer chains are more likely to degrade
         return DEGRADATION_RATE * (1.0 + (sequence.length() * 0.05));
     }
+
+    // Mutation: substitution
+    public AminoAcidMolecule mutateSubstitution() {
+        if (sequence.length() == 0) return this;
+        int pos = (int)(Math.random() * sequence.length());
+        char[] chars = sequence.toCharArray();
+        chars[pos] = AMINO_ACIDS[(int)(Math.random() * AMINO_ACIDS.length)];
+        return new AminoAcidMolecule(new String(chars), getEnergy());
+    }
+
+    // Mutation: insertion
+    public AminoAcidMolecule mutateInsertion() {
+        int pos = (int)(Math.random() * (sequence.length() + 1));
+        char insert = AMINO_ACIDS[(int)(Math.random() * AMINO_ACIDS.length)];
+        String newSeq = sequence.substring(0, pos) + insert + sequence.substring(pos);
+        return new AminoAcidMolecule(newSeq, getEnergy());
+    }
+
+    // Mutation: deletion
+    public AminoAcidMolecule mutateDeletion() {
+        if (sequence.length() <= 1) return this;
+        int pos = (int)(Math.random() * sequence.length());
+        String newSeq = sequence.substring(0, pos) + sequence.substring(pos + 1);
+        return new AminoAcidMolecule(newSeq, getEnergy());
+    }
+
+    // Crossover (recombination) with another chain
+    public AminoAcidMolecule crossover(AminoAcidMolecule other) {
+        if (sequence.length() == 0 || other.sequence.length() == 0) return this;
+        int pos1 = (int)(Math.random() * sequence.length());
+        int pos2 = (int)(Math.random() * other.sequence.length());
+        String newSeq = sequence.substring(0, pos1) + other.sequence.substring(pos2);
+        return new AminoAcidMolecule(newSeq, (getEnergy() + other.getEnergy()) / 2.0);
+    }
 } 

@@ -32,8 +32,8 @@ This project simulates the process of abiogenesis(from a layman's perspective) -
 - [x] Main menu/launcher for simulation selection
 - [x] Amino acid chain simulation UI
 - [x] Random amino acid chain generation
-- [ ] Pattern emergence tracking (e.g., "METHINKS")
-- [ ] Mutation and combination mechanisms
+- [x] Pattern emergence tracking (e.g., "METHINKS")
+- [x] Mutation and combination mechanisms
 
 ### 🔄 Phase 2: Environmental Dynamics
 - [ ] User Controls
@@ -101,12 +101,21 @@ This project simulates the process of abiogenesis(from a layman's perspective) -
    mvn exec:java -Dexec.mainClass="com.abiogenesis.gui.Launcher"
    ```
 
-## Current Features (Phase 1 In Progress)
+## Current Features (Phase 1 Complete)
 
 - **Amino Acid Generation Only:**
   - The simulation currently generates random amino acid chains in a 2D environment.
   - Generation is capped (max 50 chains) and occurs at a slow, controlled rate.
   - No degradation or reactions are active in this phase.
+  - **Population is now stably controlled:** Mutations always replace the original chain (no loss), and the cap is enforced only for generation and combination.
+
+- **Pattern Emergence Tracking:**
+  - The simulation tracks the appearance of specific amino acid sequences (e.g., "METHINKS") in the population.
+
+- **Mutation and Combination Mechanisms:**
+  - Amino acid chains can undergo mutation (substitution, insertion, deletion) and recombination (crossover), simulating evolutionary processes.
+  - **Mutation is robust:** Each mutation replaces the original chain, so the population remains stable.
+  - **Combination is limited:** Only a small number of new chains are created per step, and only if under the population cap.
 
 - **Main Menu / Launcher:**
   - Users can select between the main simulation and the amino acid chain simulation UI from a launcher window.
