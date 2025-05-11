@@ -30,8 +30,8 @@ This project simulates the process of abiogenesis - the natural process by which
 - [x] Mac M1/M2 compatibility
 - [x] Interactive tooltips for molecule details in GUI
 - [x] Main menu/launcher for simulation selection
-- [ ] Amino acid chain simulation UI(in progress)
-- [ ] Random amino acid chain generation
+- [x] Amino acid chain simulation UI
+- [x] Random amino acid chain generation
 - [ ] Pattern emergence tracking (e.g., "METHINKS")
 - [ ] Mutation and combination mechanisms
 
@@ -98,7 +98,7 @@ This project simulates the process of abiogenesis - the natural process by which
    ```
 3. Run the simulation:
    ```bash
-   mvn exec:java
+   mvn exec:java -Dexec.mainClass="com.abiogenesis.gui.Launcher"
    ```
 
 ## Current Features
@@ -121,4 +121,27 @@ The project is actively being developed according to the phase plan above. Each 
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change. 
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## Project Architecture
+
+This project uses a **modular, layered architecture** with elements of the **MVC (Model-View-Controller) pattern**:
+
+- **Presentation Layer (View/UI):**
+  - JavaFX GUI classes (`Launcher`, `SimulationView`, `AminoAcidChainView`) handle user interaction and visualization.
+- **Business Logic Layer (Simulation):**
+  - Simulation logic (e.g., `PrimordialSoup`) manages the rules, state, and processes of the simulation.
+- **Data/Model Layer:**
+  - Classes like `Atom`, `Molecule`, `Position`, and `AminoAcidChainGenerator` represent the core data structures and utilities.
+
+**Summary Table:**
+
+| Layer         | Package/Files                        | Responsibility                                 |
+|---------------|-------------------------------------|------------------------------------------------|
+| GUI           | gui/Launcher, gui/SimulationView, gui/AminoAcidChainView | User interface, visualization, simulation selection |
+| Simulation    | simulation/PrimordialSoup           | Simulation logic for molecules/environment     |
+| Model         | model/Atom, model/Molecule, model/Position, model/AminoAcidChainGenerator | Data structures and utilities                  |
+| Build/Config  | pom.xml, README.md, docs/           | Build, documentation, and configuration        |
+
+**Classification:**
+> The project is a **modular, layered application** with strong elements of the **MVC pattern**. This makes it robust, extensible, and easy to maintain or extend with new simulation types. 
