@@ -1,6 +1,6 @@
 # Abiogenesis Simulation
 
-This project simulates the process of abiogenesis(from a layman's perspective) - the natural process by which life arises from non-living matter. The simulation focuses on modeling chemical reactions, molecular interactions, and evolutionary processes in a primordial soup environment.
+This project simulates the process of abiogenesis(from a layman's perspective) - the process by which life arises from non-living matter. The simulation focuses on simple modeling chemical reactions, molecular interactions, and evolutionary processes in a primordial soup environment.
 
 ## Project Structure
 
