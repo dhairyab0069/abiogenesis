@@ -1,0 +1,16 @@
+[package]
+name = "abiogenesis"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.95"
+description = "A toy simulation of abiogenesis: molecules and amino acid chains in a primordial soup"
+repository = "https://github.com/dhairyab0069/abiogenesis"
+
+[dependencies]
+eframe = "0.36"
+rand = "0.9"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
