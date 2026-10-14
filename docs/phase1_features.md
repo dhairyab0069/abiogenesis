@@ -31,7 +31,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 - Lays groundwork for future integration with the main simulation.
 
 **Implementation Notes:**
-- Build a new JavaFX view for amino acid chains.
+- Build a dedicated view for amino acid chains.
 - Display generated chains, their lengths, and provide controls for regeneration.
 
 ---
@@ -112,7 +112,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 - Makes emergent patterns and dynamics observable.
 
 **Implementation Notes:**
-- Use JavaFX for rendering.
+- Use egui (immediate-mode GUI) for rendering.
 - Assign colors (e.g., aqua for H2O, green for CH4, purple for CH3OH).
 
 ---
@@ -188,7 +188,7 @@ This document provides an in-depth explanation of all features in Phase 1 of the
 - Platform compatibility broadens accessibility and usability.
 
 **Implementation Notes:**
-- Use the correct JavaFX dependencies and build settings for Mac ARM architecture.
+- Ship a native Rust binary per platform, including Apple Silicon (aarch64-apple-darwin).
 
 ---
 

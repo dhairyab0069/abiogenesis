@@ -1,0 +1,57 @@
+# Builds a self-contained binary per platform and attaches them to a GitHub
+# release. Trigger by pushing a version tag: git tag v0.2.0 && git push --tags
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and (re)upload binaries for
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-14, target: aarch64-apple-darwin, name: abiogenesis-macos-arm64 }
+          - { os: macos-14, target: x86_64-apple-darwin, name: abiogenesis-macos-x86_64 }
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, name: abiogenesis-linux-x86_64 }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, name: abiogenesis-windows-x86_64.exe }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - run: rustup toolchain install stable --profile minimal --target ${{ matrix.target }} && rustup default stable
+        shell: bash
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libwayland-dev libx11-dev
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+        shell: bash
+      - name: Upload binary
+        shell: bash
+        run: |
+          src=target/${{ matrix.target }}/release/abiogenesis
+          [ -f "$src.exe" ] && src="$src.exe"
+          cp "$src" "${{ matrix.name }}"
+          gh release upload "$TAG" "${{ matrix.name }}" --clobber --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
