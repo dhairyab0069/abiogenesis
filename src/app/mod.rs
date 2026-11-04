@@ -1,5 +1,7 @@
 //! The GUI: a launcher menu, the molecule simulation, the chain build-up view and the genes-and-proteins scene.
 
+mod cell_draw;
+mod cell_inspector;
 mod chains_view;
 mod formation_view;
 mod fps;
@@ -30,6 +32,7 @@ pub enum Start {
     Molecules,
     Chains,
     Formation,
+    Cells,
 }
 
 impl App {
@@ -39,6 +42,7 @@ impl App {
             Start::Molecules => Screen::Soup(Box::default()),
             Start::Chains => Screen::Chains(Box::default()),
             Start::Formation => Screen::Formation(Box::default()),
+            Start::Cells => Screen::Soup(Box::new(SoupView::cells_demo())),
         };
         Self { screen }
     }
@@ -89,6 +93,10 @@ fn menu(ui: &mut egui::Ui) -> Option<Screen> {
             ui.add_space(12.0);
             if ui.add_sized(size, egui::Button::new("Genes and Proteins")).clicked() {
                 next = Some(Screen::Formation(Box::default()));
+            }
+            ui.add_space(12.0);
+            if ui.add_sized(size, egui::Button::new("Cells and Colonies")).clicked() {
+                next = Some(Screen::Soup(Box::new(SoupView::cells_demo())));
             }
         });
     });

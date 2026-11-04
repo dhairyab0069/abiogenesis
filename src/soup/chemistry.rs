@@ -24,8 +24,8 @@ use rand::Rng;
 
 const START_NUCLEOTIDES: usize = 30;
 const START_LIPIDS: usize = 12;
-const MAX_FREE_NUCLEOTIDES: usize = 80;
-const MAX_LIPIDS: usize = 24;
+pub(super) const MAX_FREE_NUCLEOTIDES: usize = 80;
+pub(super) const MAX_LIPIDS: usize = 24;
 /// Strands the soup holds at most, and the longest one.
 pub const MAX_STRANDS: usize = 40;
 pub const MAX_STRAND_LENGTH: usize = 24;
@@ -45,7 +45,7 @@ const REPLICATION_RATE: f64 = 0.01;
 const CATALYST_BOOST: f64 = 4.0;
 const SHELTER_REPLICATION_BOOST: f64 = 2.0;
 /// Chance that a base is copied wrongly.
-const COPY_ERROR: f64 = 0.03;
+pub(super) const COPY_ERROR: f64 = 0.03;
 const STRAND_DECAY: f64 = 0.0006;
 const LIPID_DECAY: f64 = 0.0005;
 const SHELTER_DECAY: f64 = 0.5;

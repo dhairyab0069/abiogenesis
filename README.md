@@ -46,8 +46,7 @@ It is built in six stages. Stages 1 to 5 explain how the process works and how i
 plain terms, from molecules in a pool up to cells and multicellular life. Stage 6 is a scenario lab:
 set up conditions, pick natural or forced selection, and watch how a population evolves over time.
 
-**Where it is today:** stages 1 to 4 are done. Stages 5 and 6 are described in the
-[roadmap](#roadmap).
+**Where it is today:** stages 1 to 5 are done. Stage 6 is described in the [roadmap](#roadmap).
 
 ## Install
 
@@ -101,6 +100,7 @@ abiogenesis              open the launcher menu
 abiogenesis molecules    open the molecule simulation directly
 abiogenesis chains       open the chain build-up view directly
 abiogenesis formation    open the genes and proteins scene directly
+abiogenesis cells        open the cells and colonies demo directly
 abiogenesis --version
 ```
 
@@ -157,6 +157,38 @@ it, set the speed, jump to a phase, switch between RNA (U) and DNA (T), or load 
 scene uses the same `complement_strand`, `reading_frame` and `translate` as the soup, so it always
 agrees with the simulation.
 
+**Cells to complex life (stage 5).** Every cell is a small, honest simplification, not a biology
+lesson. A crowd of lipids closes into a *cell* and draws in the nearest strands. A cell takes in a couple
+of nearby lipids, nucleotides and strands per step, makes some membrane of its own, and its strands copy
+themselves from its stock of nucleotides. A cell is as big as what it holds, and its fitness is its
+strands' mean fitness blended with how well its membrane is stocked. With 8 lipids and 4 strands it may
+divide: the strands go alternately to mother and daughter (with the odd wrong base), and the membrane and
+nucleotides are shared out. Fitter cells divide more and die less, so selection works on whole cells; a
+dead cell hands its contents back to the soup. **Eukaryotes:** a cell at least 12% wider than a free
+cell it overlaps may swallow it. The guest becomes a *mitochondrion* (energy: faster copying and
+dividing) and the host's strands move into a *nucleus* (they fall apart 60% slower and copy with 70%
+fewer errors). A cell with both is a eukaryote and passes both on to its daughters. **Multicellular
+life:** when a eukaryote divides, the daughter may stay attached (35% of the time, 80% inside a colony,
+up to 8 cells). A colony moves as one body, and its members take roles: *germ* cells do the dividing,
+*soma* cells almost never die and never divide, *feeder* cells reach further for food and pass
+nucleotides to the others. Each extra role gives the whole colony 20% more dividing and less dying.
+Everything is capped (24 cells, 10 strands each, 3 mitochondria, 8 per colony). Cells are drawn as cells: the membrane is a
+lipid bilayer of individual glyphs (a round head and two tails; the outer leaflet's heads face out, the
+inner leaflet's face in, the tails meet in the middle, with a slight shimmer), or a smooth double line
+when a cell is small on screen or the frame's glyph budget is spent. You can watch a cell form: the
+lipids that crowded together turn their heads outward and travel into an arc, the arc curls shut, the
+inner leaflet appears, and only then does the soft cytoplasm fill and trap the nearby strands. Strands
+are bead rows; a nucleus has a double membrane with pores and holds the strands; mitochondria are beans
+with a double membrane and cristae. A dividing cell elongates and pinches in two; a swallowing shows the
+host's membrane reaching round the guest, closing, and the guest shrinking into a mitochondrion (the
+nucleus fades in after it); colony members press together with shared walls, junction marks and a
+colour hint for germ, soma and feeder. Click a cell to open the inspector: a large close-up with labels
+for membrane, cytoplasm, nucleus, mitochondria and strands, the cell's real numbers and a short note on
+how lipids make a bilayer. The side panel counts cells, eukaryotes, colonies and cell fitness, charts
+them, and lists the latest cell events. *Cells and Colonies* in the launcher is the molecule simulation
+started with a few ready-made cells and a speed slider (the slider is in the molecule simulation too).
+In the demo the first colony showed up within about 6,000 steps in all 8 seeds tried (under two minutes at normal speed, well under one at the demo's 3x); from an empty soup it takes a few minutes.
+
 **The chain build-up view.** Random amino acid chains appear one colored tile per residue, capped at 50.
 Chains mutate (a substitution flashes the changed tile, an insertion pops a new one in, a deletion shrinks
 one away) and recombine by crossover (the child briefly shows which part came from which parent). A legend
@@ -186,7 +218,7 @@ population stable while still letting patterns emerge.
   autocatalysis, self-replication, and a fitness for each molecule.
 - [x] **Stage 4, visualization and metrics.** Proteins read off genes, an animated genes-and-proteins
   scene, live charts for diversity, replicators and the environment, and a protein lineage.
-- [ ] **Stage 5, cells to complex life.** Protocells that grow and divide, then eukaryotes (one cell
+- [x] **Stage 5, cells to complex life.** Protocells that grow and divide, then eukaryotes (one cell
   swallows another, which becomes the mitochondrion, and the DNA gets its own envelope, the nucleus),
   then cells that stay together and specialize into multicellular life.
 - [ ] **Stage 6, scenario lab.** Build a scenario, choose natural or forced selection, and watch
@@ -218,6 +250,8 @@ src/
     mod.rs          App, Start, the launcher menu and screen switching
     soup_view.rs    molecule simulation screen: controls, statistics, canvas
     molecule_draw.rs  molecule size, colour and hover text
+    cell_draw.rs    cells: lipid bilayer, nucleus, mitochondria, formation, pinch, cup, colonies
+    cell_inspector.rs  the click-to-inspect close-up
     formation_view.rs  genes and proteins screen: draws a Formation snapshot
     sparkline.rs    painter-drawn line charts for the side panel
     chains_view.rs  chain build-up screen: stepping the soup, controls, rows
@@ -240,6 +274,8 @@ src/
     chemistry.rs    stage 3 chemistry: strands, copying, decay
     protein.rs      genes read into proteins, the gene boost
     history.rs      the sampled history behind the charts
+    cell.rs         stage 5: Cell, roles, and the pure rules (size, fitness, rates)
+    cells.rs        stage 5 in the soup: forming, eating, dividing, swallowing, colonies
   model/      atoms, molecules, amino acid chains
     atom.rs, position.rs  Atom and its elements, Position
     molecule.rs     Kind and Molecule: constructors and queries
@@ -247,6 +283,7 @@ src/
     genetic_code.rs the standard codon table, reading frames, translate
     sequence.rs     the amino acid alphabet and random sequences
   formation/  egui-free timeline of the genes and proteins scene (phases, snapshots, random genes)
+  cellviz/    egui-free geometry and timelines for the cell drawings (bilayer, formation, pinch, cup)
   events.rs       the chain event log and protein lineage
   environment.rs  temperature, pH and wetness, optionally cycling
 docs/
