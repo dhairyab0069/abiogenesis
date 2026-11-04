@@ -55,6 +55,32 @@ pub struct CellStats {
     pub colonies_formed: u64,
 }
 
+/// Where the lipids and strands were when a cell closed around them, so the
+/// view can replay the formation. Positions are in soup pixels.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FormationRecord {
+    pub cell_id: u64,
+    pub step: u64,
+    pub centre: (f64, f64),
+    pub lipids: Vec<(f64, f64)>,
+    pub strands: Vec<(f64, f64)>,
+}
+
+/// A swallowing: where the guest was relative to the host, and how big, for the view.
+#[derive(Clone, Debug, PartialEq)]
+pub struct EngulfRecord {
+    pub host_id: u64,
+    pub step: u64,
+    pub guest_offset: (f64, f64),
+    pub guest_radius: f64,
+    /// The host had no nucleus before this.
+    pub new_nucleus: bool,
+}
+
+/// Records kept for the view.
+const FORMATION_RECORDS: usize = 16;
+const ENGULF_RECORDS: usize = 8;
+
 /// The cell layer's state, kept in one place so the soup has a single field for it.
 #[derive(Clone, Debug)]
 pub(super) struct CellLayer {
@@ -63,11 +89,13 @@ pub(super) struct CellLayer {
     pub next_colony_id: u64,
     pub stats: CellStats,
     pub events: VecDeque<(u64, CellEvent)>,
+    pub formations: VecDeque<FormationRecord>,
+    pub engulfs: VecDeque<EngulfRecord>,
 }
 
 impl Default for CellLayer {
     fn default() -> Self {
-        Self { on: false, next_cell_id: 1, next_colony_id: 1, stats: CellStats::default(), events: VecDeque::new() }
+        Self { on: false, next_cell_id: 1, next_colony_id: 1, stats: CellStats::default(), events: VecDeque::new(), formations: VecDeque::new(), engulfs: VecDeque::new() }
     }
 }
 
@@ -109,6 +137,16 @@ impl PrimordialSoup {
     /// The most recent cell events, oldest first.
     pub fn cell_events(&self) -> &VecDeque<(u64, CellEvent)> {
         &self.cell_layer.events
+    }
+
+    /// How recent cells formed (for replaying the formation), oldest first.
+    pub fn formation_records(&self) -> &VecDeque<FormationRecord> {
+        &self.cell_layer.formations
+    }
+
+    /// How recent swallowings went (for replaying them), oldest first.
+    pub fn engulf_records(&self) -> &VecDeque<EngulfRecord> {
+        &self.cell_layer.engulfs
     }
 
     pub fn cell_count(&self) -> usize {
@@ -222,6 +260,18 @@ impl PrimordialSoup {
         let mut taken: Vec<usize> = lipids.into_iter().take(cell.lipids as usize).collect();
         taken.extend(&strands);
         cell.strands = strands.iter().map(|&i| self.molecules[i].clone()).collect();
+        let at = |i: &usize| (self.molecules[*i].position.x, self.molecules[*i].position.y);
+        let record = FormationRecord {
+            cell_id: cell.id,
+            step: self.step,
+            centre: (here.x, here.y),
+            lipids: taken.iter().take(cell.lipids as usize).map(at).collect(),
+            strands: strands.iter().map(at).collect(),
+        };
+        if self.cell_layer.formations.len() >= FORMATION_RECORDS {
+            self.cell_layer.formations.pop_front();
+        }
+        self.cell_layer.formations.push_back(record);
         taken.sort_unstable_by(|a, b| b.cmp(a));
         for i in taken {
             self.molecules.swap_remove(i);
@@ -345,8 +395,14 @@ impl PrimordialSoup {
     /// Cell `g` becomes a mitochondrion of cell `h`; its strands move into the
     /// host's nucleus (what does not fit is released into the soup).
     pub(super) fn swallow(&mut self, h: usize, g: usize) {
+        let (offset, guest_radius) = ((self.cells[g].x - self.cells[h].x, self.cells[g].y - self.cells[h].y), self.cells[g].radius());
         let guest = self.cells.remove(g);
         let h = if g < h { h - 1 } else { h };
+        let record = EngulfRecord { host_id: self.cells[h].id, step: self.step, guest_offset: offset, guest_radius, new_nucleus: !self.cells[h].nucleus };
+        if self.cell_layer.engulfs.len() >= ENGULF_RECORDS {
+            self.cell_layer.engulfs.pop_front();
+        }
+        self.cell_layer.engulfs.push_back(record);
         let (host_id, guest_id) = (self.cells[h].id, guest.id);
         let host = &mut self.cells[h];
         let was_eukaryote = host.is_eukaryote();
@@ -634,6 +690,9 @@ mod tests {
         }
         assert_eq!(soup.cells.len(), 1);
         let cell = &soup.cells[0];
+        let record = soup.formation_records().back().expect("the formation was recorded");
+        assert_eq!((record.cell_id, record.lipids.len(), record.strands.len()), (cell.id, 3, 1));
+        assert!(record.lipids.contains(&(200.0, 200.0)) && record.strands == vec![(260.0, 230.0)], "where they were");
         assert_eq!((cell.lipids, cell.strands.len()), (3, 1), "the near strand came in, the far one did not");
         assert_eq!(soup.molecules.len(), 1, "everything the cell holds left the soup");
         assert_eq!(soup.cell_stats().formed, 1);
@@ -826,6 +885,9 @@ mod tests {
         assert!(h.mitochondria == 1 && h.nucleus && h.is_eukaryote());
         assert_eq!(h.strands.len(), host_strands + 1, "the guest's strand moved into the nucleus");
         assert_eq!(soup.cell_stats().engulfments, 1);
+        let rec = soup.engulf_records().back().expect("recorded");
+        assert_eq!((rec.host_id, rec.guest_offset, rec.new_nucleus), (soup.cells[0].id, (10.0, 5.0), true));
+        assert!(rec.guest_radius > 0.0 && soup.engulf_records().len() == 1);
         assert_eq!(soup.cell_stats().eukaryotes_formed, 1);
         assert!(soup.cell_events().iter().any(|(_, e)| matches!(e, CellEvent::Engulfed { guest: g, .. } if *g == guest_id)));
         assert!(soup.cell_events().iter().any(|(_, e)| matches!(e, CellEvent::BecameEukaryote { .. })));

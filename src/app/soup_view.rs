@@ -2,6 +2,7 @@
 
 use super::fps::Fps;
 use super::cell_draw::{cell_tooltip, draw_cells};
+use super::cell_inspector::inspector;
 use super::sparkline::sparkline;
 use super::molecule_draw::{CATALYST_COLOR, LIPID_COLOR, base_color, molecule_color, molecule_size, tooltip_text};
 use super::{Screen, back_button};
@@ -46,6 +47,8 @@ pub struct SoupView {
     speed: f64,
     /// Whether this is the cells demo (reset seeds the cells again).
     demo_cells: bool,
+    /// The cell shown in the inspector.
+    selected: Option<u64>,
 }
 
 impl Default for SoupView {
@@ -72,6 +75,7 @@ impl SoupView {
             lineage: Vec::new(),
             speed: if demo_cells { 3.0 } else { 1.0 },
             demo_cells,
+            selected: None,
         };
         if demo_cells {
             view.soup.seed_cells(10);
@@ -312,7 +316,7 @@ impl SoupView {
     }
 
     fn canvas_ui(&mut self, ui: &mut egui::Ui) {
-        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::hover());
+        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click());
         let rect = response.rect;
         self.fit_to(rect);
 
@@ -328,7 +332,8 @@ impl SoupView {
             painter.circle_stroke(center, p.radius as f32, Stroke::new(2.0, DROPLET));
         }
 
-        draw_cells(&painter, rect.min, &self.soup.cells);
+        let time = ui.input(|i| i.time) as f32;
+        draw_cells(&painter, rect.min, &self.soup, time);
 
         for m in &self.soup.molecules {
             let center = screen_pos(rect, m);
@@ -351,6 +356,10 @@ impl SoupView {
             let at = (p - rect.min).to_pos2();
             self.soup.cells.iter().find(|c| c.contains(at.x as f64, at.y as f64))
         });
+        if response.clicked() {
+            self.selected = hovered_cell.map(|c| c.id);
+        }
+        inspector(ui.ctx(), &self.soup, &mut self.selected, time);
         let hovered = response
             .hover_pos()
             .filter(|_| hovered_cell.is_none())

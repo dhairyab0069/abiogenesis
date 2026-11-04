@@ -1,6 +1,7 @@
 //! The GUI: a launcher menu, the molecule simulation, the chain build-up view and the genes-and-proteins scene.
 
 mod cell_draw;
+mod cell_inspector;
 mod chains_view;
 mod formation_view;
 mod fps;

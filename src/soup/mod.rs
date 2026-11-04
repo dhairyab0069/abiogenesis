@@ -22,7 +22,7 @@ use crate::model::{Molecule, Position};
 use rand::{SeedableRng, rngs::StdRng};
 
 pub use cell::{Cell, CellEvent, MAX_CELLS, MAX_CELL_STRANDS, MAX_COLONY_SIZE, MAX_MITOCHONDRIA, Role};
-pub use cells::CellStats;
+pub use cells::{CellStats, EngulfRecord, FormationRecord};
 pub use history::{History, Metric, Sample};
 pub use protein::gene_boost;
 pub use protocell::Protocell;
