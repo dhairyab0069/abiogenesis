@@ -34,13 +34,19 @@ pub enum ChainEvent {
     /// `id` is the start of `parents.0` (up to `cut.0`) joined to the end of
     /// `parents.1` (from `cut.1`).
     Recombined { id: ChainId, parents: (ChainId, ChainId), cut: (usize, usize), sequence: String },
+    /// A protein, read off an RNA strand: `gene` is the strand's bases, `sequence`
+    /// the amino acids they spell. The strand is not a chain, so there is no parent.
+    Translated { id: ChainId, gene: String, sequence: String },
 }
 
 impl ChainEvent {
     /// The chain this event created.
     pub fn id(&self) -> ChainId {
         match self {
-            Self::Generated { id, .. } | Self::Mutated { id, .. } | Self::Recombined { id, .. } => *id,
+            Self::Generated { id, .. }
+            | Self::Mutated { id, .. }
+            | Self::Recombined { id, .. }
+            | Self::Translated { id, .. } => *id,
         }
     }
 
@@ -49,14 +55,15 @@ impl ChainEvent {
         match self {
             Self::Generated { sequence, .. }
             | Self::Mutated { sequence, .. }
-            | Self::Recombined { sequence, .. } => sequence,
+            | Self::Recombined { sequence, .. }
+            | Self::Translated { sequence, .. } => sequence,
         }
     }
 
     /// The chains this one came from: none, one or two.
     pub fn parents(&self) -> Vec<ChainId> {
         match self {
-            Self::Generated { .. } => vec![],
+            Self::Generated { .. } | Self::Translated { .. } => vec![],
             Self::Mutated { parent, .. } => vec![*parent],
             Self::Recombined { parents, .. } => vec![parents.0, parents.1],
         }
