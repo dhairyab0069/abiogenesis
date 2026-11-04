@@ -50,9 +50,26 @@ watch how a population evolves over time.
 
 ## Install
 
-Download the binary for your platform from the
-[latest release](https://github.com/dhairyab0069/abiogenesis/releases/latest). Nothing else is
-needed: no Java, no runtime, no dependencies.
+Download from the [latest release](https://github.com/dhairyab0069/abiogenesis/releases/latest).
+Nothing else is needed: no Java, no runtime, no dependencies. There are installers for macOS and
+Windows, and a plain binary for every platform. CI builds the installers and binaries on version
+tags.
+
+**Installers**
+
+| Platform | File |
+|---|---|
+| macOS (Apple Silicon) | `Abiogenesis-<version>-macos-arm64.dmg` |
+| macOS (Intel) | `Abiogenesis-<version>-macos-x86_64.dmg` |
+| Windows (x86_64) | `Abiogenesis-<version>-windows-x86_64-setup.exe` |
+
+- *macOS:* open the `.dmg` and drag Abiogenesis to Applications. The app is not notarized, so the
+  first launch needs right-click, Open (or run
+  `xattr -dr com.apple.quarantine /Applications/Abiogenesis.app` once).
+- *Windows:* run the setup `.exe`. It installs without admin rights and adds a Start menu entry.
+  SmartScreen may warn because the installer is unsigned: click More info, then Run anyway.
+
+**Plain binaries**
 
 | Platform | File |
 |---|---|
