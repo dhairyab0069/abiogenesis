@@ -23,7 +23,6 @@ impl Molecule {
         Some(self.with_sequence(seq[..split].to_string(), self.energy * 0.6))
     }
 
-
     /// Replaces one random residue with a random amino acid. Returns the child and
     /// the edit, or None (with no randomness used) for an empty chain.
     ///
@@ -39,7 +38,14 @@ impl Molecule {
         let to = random_amino_acid(rng);
         chars[pos] = to;
         let child = self.with_sequence(chars.into_iter().collect(), self.energy);
-        Some((child, Mutation::Substitution { index: pos, from, to }))
+        Some((
+            child,
+            Mutation::Substitution {
+                index: pos,
+                from,
+                to,
+            },
+        ))
     }
 
     /// Inserts a random amino acid at a random position. Always makes an edit.
@@ -49,7 +55,13 @@ impl Molecule {
         let residue = random_amino_acid(rng);
         chars.insert(pos, residue);
         let child = self.with_sequence(chars.into_iter().collect(), self.energy);
-        Some((child, Mutation::Insertion { index: pos, residue }))
+        Some((
+            child,
+            Mutation::Insertion {
+                index: pos,
+                residue,
+            },
+        ))
     }
 
     /// Deletes one random residue. None (no randomness used) for a chain of one
@@ -62,13 +74,23 @@ impl Molecule {
         let pos = rng.random_range(0..chars.len());
         let residue = chars.remove(pos);
         let child = self.with_sequence(chars.into_iter().collect(), self.energy);
-        Some((child, Mutation::Deletion { index: pos, residue }))
+        Some((
+            child,
+            Mutation::Deletion {
+                index: pos,
+                residue,
+            },
+        ))
     }
 
     /// Recombination: the start of this chain joined to the end of `other`, with
     /// the parents' average energy. Also returns the cut points `(in self, in
     /// other)`. None (no randomness used) if either parent has no residues.
-    pub fn crossover(&self, other: &Molecule, rng: &mut impl Rng) -> Option<(Molecule, (usize, usize))> {
+    pub fn crossover(
+        &self,
+        other: &Molecule,
+        rng: &mut impl Rng,
+    ) -> Option<(Molecule, (usize, usize))> {
         let (a, b) = (self.seq_or_empty(), other.seq_or_empty());
         if a.is_empty() || b.is_empty() {
             return None;
@@ -76,6 +98,9 @@ impl Molecule {
         let p1 = rng.random_range(0..a.len());
         let p2 = rng.random_range(0..b.len());
         let sequence = format!("{}{}", &a[..p1], &b[p2..]);
-        Some((Self::amino_acid(sequence, (self.energy + other.energy) / 2.0), (p1, p2)))
+        Some((
+            Self::amino_acid(sequence, (self.energy + other.energy) / 2.0),
+            (p1, p2),
+        ))
     }
 }

@@ -28,13 +28,25 @@ impl PrimordialSoup {
         let wet_scale = thermal * (0.6 + 0.4 * self.wetness);
         let water_line = self.water_line();
         let (w, h) = (self.width, self.height);
-        let Self { molecules, protocells, rng, .. } = self;
+        let Self {
+            molecules,
+            protocells,
+            rng,
+            ..
+        } = self;
         for m in molecules.iter_mut() {
             let stranded = m.position.y < water_line;
-            let scale = if stranded { thermal * STRANDED_MOBILITY } else { wet_scale };
+            let scale = if stranded {
+                thermal * STRANDED_MOBILITY
+            } else {
+                wet_scale
+            };
             let dx = (rng.random::<f64>() - 0.5) * scale;
-            let dy = (rng.random::<f64>() - 0.5) * scale + if stranded { SETTLE_SPEED } else { 0.0 };
-            let home = protocells.iter().find(|p| p.contains(m.position.x, m.position.y));
+            let dy =
+                (rng.random::<f64>() - 0.5) * scale + if stranded { SETTLE_SPEED } else { 0.0 };
+            let home = protocells
+                .iter()
+                .find(|p| p.contains(m.position.x, m.position.y));
             m.position.x = (m.position.x + dx).clamp(0.0, w);
             m.position.y = (m.position.y + dy).clamp(0.0, h);
             if let Some(p) = home {

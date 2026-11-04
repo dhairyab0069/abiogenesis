@@ -31,14 +31,18 @@ fn legend_item(ui: &mut egui::Ui, color: Color32, label: &str) {
 /// Draws one chain as a row of letter tiles. Each tile advances the cursor by its
 /// own scale so rows reflow smoothly as tiles grow in and shrink away.
 pub(super) fn draw_row(ui: &mut egui::Ui, row: &Row) {
-    let (response, painter) = ui.allocate_painter(Vec2::new(ui.available_width(), ROW_HEIGHT), Sense::hover());
+    let (response, painter) =
+        ui.allocate_painter(Vec2::new(ui.available_width(), ROW_HEIGHT), Sense::hover());
     let mut x = response.rect.left();
     let cy = response.rect.center().y;
     for tile in &row.tiles {
         let scale = tile.scale();
         let size = TILE_SIZE * scale;
         if size > 0.5 {
-            let rect = egui::Rect::from_center_size(Pos2::new(x + TILE_SIZE * scale.min(1.0) / 2.0, cy), Vec2::splat(size));
+            let rect = egui::Rect::from_center_size(
+                Pos2::new(x + TILE_SIZE * scale.min(1.0) / 2.0, cy),
+                Vec2::splat(size),
+            );
             let color = tile_color(tile, row.origin_strength());
             painter.rect_filled(rect, 4.0, color);
             painter.text(

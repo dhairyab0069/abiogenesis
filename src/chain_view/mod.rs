@@ -27,19 +27,20 @@
 //! - **Animations only use elapsed time, and finish by clamping**, so one huge
 //!   `advance` settles everything and a paused-then-resumed view cannot stall.
 
-
 mod apply;
 mod hue;
 mod row;
-mod tile;
-mod timing;
 #[cfg(test)]
 mod tests;
+mod tile;
+mod timing;
 
 pub use hue::residue_hue;
 pub use row::Row;
 pub use tile::{EditKind, Motion, Origin, Tile};
-pub use timing::{FLASH_SECONDS, GROW_DELAY_PER_TILE, GROW_SECONDS, MAX_ROWS, RECOMBINE_SECONDS, SHRINK_SECONDS};
+pub use timing::{
+    FLASH_SECONDS, GROW_DELAY_PER_TILE, GROW_SECONDS, MAX_ROWS, RECOMBINE_SECONDS, SHRINK_SECONDS,
+};
 
 use crate::events::{ChainId, EventLog};
 use std::collections::HashSet;
@@ -83,5 +84,4 @@ impl ChainView {
             row.advance(dt.max(0.0));
         }
     }
-
 }

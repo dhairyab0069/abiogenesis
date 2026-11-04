@@ -7,8 +7,28 @@ pub struct Atom {
     pub atomic_mass: f64,
 }
 
-pub const HYDROGEN: Atom = Atom { element: "H", atomic_number: 1, atomic_mass: 1.008 };
-pub const CARBON: Atom = Atom { element: "C", atomic_number: 6, atomic_mass: 12.011 };
-pub const NITROGEN: Atom = Atom { element: "N", atomic_number: 7, atomic_mass: 14.007 };
-pub const PHOSPHORUS: Atom = Atom { element: "P", atomic_number: 15, atomic_mass: 30.974 };
-pub const OXYGEN: Atom = Atom { element: "O", atomic_number: 8, atomic_mass: 15.999 };
+pub const HYDROGEN: Atom = Atom {
+    element: "H",
+    atomic_number: 1,
+    atomic_mass: 1.008,
+};
+pub const CARBON: Atom = Atom {
+    element: "C",
+    atomic_number: 6,
+    atomic_mass: 12.011,
+};
+pub const NITROGEN: Atom = Atom {
+    element: "N",
+    atomic_number: 7,
+    atomic_mass: 14.007,
+};
+pub const PHOSPHORUS: Atom = Atom {
+    element: "P",
+    atomic_number: 15,
+    atomic_mass: 30.974,
+};
+pub const OXYGEN: Atom = Atom {
+    element: "O",
+    atomic_number: 8,
+    atomic_mass: 15.999,
+};

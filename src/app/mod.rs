@@ -1,5 +1,7 @@
-//! The GUI: a launcher menu, the molecule simulation, the chain build-up view and the genes-and-proteins scene.
+//! The GUI: a launcher menu, the molecule simulation, the chain build-up view, the genes-and-proteins scene and the animals screen.
 
+mod animal_draw;
+mod animals_view;
 mod cell_draw;
 mod cell_inspector;
 mod chains_view;
@@ -10,6 +12,7 @@ mod soup_view;
 mod sparkline;
 mod tiles;
 
+pub use animals_view::AnimalsView;
 pub use chains_view::ChainsView;
 pub use formation_view::FormationView;
 pub use soup_view::SoupView;
@@ -33,6 +36,7 @@ pub enum Start {
     Chains,
     Formation,
     Cells,
+    Animals,
 }
 
 impl App {
@@ -43,6 +47,7 @@ impl App {
             Start::Chains => Screen::Chains(Box::default()),
             Start::Formation => Screen::Formation(Box::default()),
             Start::Cells => Screen::Soup(Box::new(SoupView::cells_demo())),
+            Start::Animals => Screen::Animals(Box::default()),
         };
         Self { screen }
     }
@@ -55,6 +60,7 @@ enum Screen {
     Soup(Box<SoupView>),
     Chains(Box<ChainsView>),
     Formation(Box<FormationView>),
+    Animals(Box<AnimalsView>),
 }
 
 impl eframe::App for App {
@@ -64,6 +70,7 @@ impl eframe::App for App {
             Screen::Soup(view) => view.ui(ui),
             Screen::Chains(view) => view.ui(ui),
             Screen::Formation(view) => view.ui(ui),
+            Screen::Animals(view) => view.ui(ui),
         };
         if let Some(next) = next {
             self.screen = next;
@@ -77,28 +84,53 @@ fn back_button(ui: &mut egui::Ui) -> bool {
 
 fn menu(ui: &mut egui::Ui) -> Option<Screen> {
     let mut next = None;
-    egui::CentralPanel::default().frame(egui::Frame::new().fill(MENU_BG)).show(ui, |ui| {
-        ui.vertical_centered(|ui| {
-            ui.add_space((ui.available_height() / 2.0 - 90.0).max(20.0));
-            ui.heading(RichText::new("Abiogenesis Simulation").size(26.0).color(Color32::WHITE));
-            ui.add_space(24.0);
-            let size = Vec2::new(280.0, 40.0);
-            if ui.add_sized(size, egui::Button::new("Molecule Simulation")).clicked() {
-                next = Some(Screen::Soup(Box::default()));
-            }
-            ui.add_space(12.0);
-            if ui.add_sized(size, egui::Button::new("Amino Acid Chain Simulation")).clicked() {
-                next = Some(Screen::Chains(Box::default()));
-            }
-            ui.add_space(12.0);
-            if ui.add_sized(size, egui::Button::new("Genes and Proteins")).clicked() {
-                next = Some(Screen::Formation(Box::default()));
-            }
-            ui.add_space(12.0);
-            if ui.add_sized(size, egui::Button::new("Cells and Colonies")).clicked() {
-                next = Some(Screen::Soup(Box::new(SoupView::cells_demo())));
-            }
+    egui::CentralPanel::default()
+        .frame(egui::Frame::new().fill(MENU_BG))
+        .show(ui, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space((ui.available_height() / 2.0 - 90.0).max(20.0));
+                ui.heading(
+                    RichText::new("Abiogenesis Simulation")
+                        .size(26.0)
+                        .color(Color32::WHITE),
+                );
+                ui.add_space(24.0);
+                let size = Vec2::new(280.0, 40.0);
+                if ui
+                    .add_sized(size, egui::Button::new("Molecule Simulation"))
+                    .clicked()
+                {
+                    next = Some(Screen::Soup(Box::default()));
+                }
+                ui.add_space(12.0);
+                if ui
+                    .add_sized(size, egui::Button::new("Amino Acid Chain Simulation"))
+                    .clicked()
+                {
+                    next = Some(Screen::Chains(Box::default()));
+                }
+                ui.add_space(12.0);
+                if ui
+                    .add_sized(size, egui::Button::new("Genes and Proteins"))
+                    .clicked()
+                {
+                    next = Some(Screen::Formation(Box::default()));
+                }
+                ui.add_space(12.0);
+                if ui
+                    .add_sized(size, egui::Button::new("Cells and Colonies"))
+                    .clicked()
+                {
+                    next = Some(Screen::Soup(Box::new(SoupView::cells_demo())));
+                }
+                ui.add_space(12.0);
+                if ui
+                    .add_sized(size, egui::Button::new("Animals: from sea to land"))
+                    .clicked()
+                {
+                    next = Some(Screen::Animals(Box::default()));
+                }
+            });
         });
-    });
     next
 }

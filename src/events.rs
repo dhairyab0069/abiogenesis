@@ -30,13 +30,27 @@ pub enum ChainEvent {
     /// A brand new random chain appeared.
     Generated { id: ChainId, sequence: String },
     /// `parent` mutated into `id`.
-    Mutated { id: ChainId, parent: ChainId, mutation: Mutation, sequence: String },
+    Mutated {
+        id: ChainId,
+        parent: ChainId,
+        mutation: Mutation,
+        sequence: String,
+    },
     /// `id` is the start of `parents.0` (up to `cut.0`) joined to the end of
     /// `parents.1` (from `cut.1`).
-    Recombined { id: ChainId, parents: (ChainId, ChainId), cut: (usize, usize), sequence: String },
+    Recombined {
+        id: ChainId,
+        parents: (ChainId, ChainId),
+        cut: (usize, usize),
+        sequence: String,
+    },
     /// A protein, read off an RNA strand: `gene` is the strand's bases, `sequence`
     /// the amino acids they spell. The strand is not a chain, so there is no parent.
-    Translated { id: ChainId, gene: String, sequence: String },
+    Translated {
+        id: ChainId,
+        gene: String,
+        sequence: String,
+    },
 }
 
 impl ChainEvent {
@@ -113,7 +127,10 @@ pub struct EventLog {
 
 impl Default for EventLog {
     fn default() -> Self {
-        Self { events: Vec::new(), next_id: UNRECORDED + 1 }
+        Self {
+            events: Vec::new(),
+            next_id: UNRECORDED + 1,
+        }
     }
 }
 
@@ -156,7 +173,8 @@ impl EventLog {
     /// before its children), at most `max_rows` rows, `root` first. A chain with two
     /// parents appears under the first one that reaches it.
     pub fn lineage(&self, root: ChainId, max_rows: usize) -> Vec<LineageRow> {
-        let mut children: std::collections::HashMap<ChainId, Vec<&Stamped>> = std::collections::HashMap::new();
+        let mut children: std::collections::HashMap<ChainId, Vec<&Stamped>> =
+            std::collections::HashMap::new();
         for s in &self.events {
             for p in s.event.parents() {
                 children.entry(p).or_default().push(s);
@@ -169,8 +187,16 @@ impl EventLog {
             if rows.len() >= max_rows {
                 break;
             }
-            let Some(created) = self.creation_of(id) else { continue };
-            rows.push(LineageRow { id, depth, step: created.step, how: created.event.how(), sequence: created.event.sequence().to_string() });
+            let Some(created) = self.creation_of(id) else {
+                continue;
+            };
+            rows.push(LineageRow {
+                id,
+                depth,
+                step: created.step,
+                how: created.event.how(),
+                sequence: created.event.sequence().to_string(),
+            });
             let kids = children.get(&id).map(Vec::as_slice).unwrap_or(&[]);
             for kid in kids.iter().rev() {
                 let kid_id = kid.event.id();
@@ -186,7 +212,11 @@ impl EventLog {
     /// The protein chains that were read off a strand, with the step they appeared,
     /// oldest first: the roots of the protein lineages.
     pub fn translated_roots(&self) -> Vec<(ChainId, u64)> {
-        self.events.iter().filter(|s| matches!(s.event, ChainEvent::Translated { .. })).map(|s| (s.event.id(), s.step)).collect()
+        self.events
+            .iter()
+            .filter(|s| matches!(s.event, ChainEvent::Translated { .. }))
+            .map(|s| (s.event.id(), s.step))
+            .collect()
     }
 
     /// The chain's ancestors, nearest first, each listed once.
@@ -195,7 +225,9 @@ impl EventLog {
         let mut queue = vec![id];
         while !queue.is_empty() {
             let current = queue.remove(0);
-            let Some(created) = self.creation_of(current) else { continue };
+            let Some(created) = self.creation_of(current) else {
+                continue;
+            };
             for parent in created.event.parents() {
                 if !seen.contains(&parent) {
                     seen.push(parent);
@@ -215,18 +247,42 @@ mod tests {
     fn sample() -> EventLog {
         let mut log = EventLog::new();
         let (a, b, c, d) = (log.new_id(), log.new_id(), log.new_id(), log.new_id());
-        log.record(1, ChainEvent::Generated { id: a, sequence: "MET".into() });
+        log.record(
+            1,
+            ChainEvent::Generated {
+                id: a,
+                sequence: "MET".into(),
+            },
+        );
         log.record(
             2,
             ChainEvent::Mutated {
                 id: b,
                 parent: a,
-                mutation: Mutation::Substitution { index: 1, from: 'E', to: 'A' },
+                mutation: Mutation::Substitution {
+                    index: 1,
+                    from: 'E',
+                    to: 'A',
+                },
                 sequence: "MAT".into(),
             },
         );
-        log.record(3, ChainEvent::Generated { id: c, sequence: "KS".into() });
-        log.record(4, ChainEvent::Recombined { id: d, parents: (b, c), cut: (2, 0), sequence: "MAKS".into() });
+        log.record(
+            3,
+            ChainEvent::Generated {
+                id: c,
+                sequence: "KS".into(),
+            },
+        );
+        log.record(
+            4,
+            ChainEvent::Recombined {
+                id: d,
+                parents: (b, c),
+                cut: (2, 0),
+                sequence: "MAKS".into(),
+            },
+        );
         log
     }
 
@@ -254,14 +310,21 @@ mod tests {
         assert_eq!(log.since(0).len(), 4);
         assert_eq!(log.since(3).len(), 1);
         assert_eq!(log.since(4).len(), 0);
-        assert_eq!(log.since(99).len(), 0, "a cursor past the end is not an error");
+        assert_eq!(
+            log.since(99).len(),
+            0,
+            "a cursor past the end is not an error"
+        );
     }
 
     #[test]
     fn creation_lookup_finds_the_right_event() {
         let log = sample();
         assert_eq!(log.creation_of(2).map(|s| s.step), Some(2));
-        assert!(log.creation_of(UNRECORDED).is_none(), "id 0 never has a creation event");
+        assert!(
+            log.creation_of(UNRECORDED).is_none(),
+            "id 0 never has a creation event"
+        );
         assert!(log.creation_of(42).is_none());
     }
 
@@ -278,12 +341,45 @@ mod tests {
     fn ancestors_list_a_shared_ancestor_once() {
         let mut log = EventLog::new();
         let root = log.new_id();
-        log.record(0, ChainEvent::Generated { id: root, sequence: "A".into() });
+        log.record(
+            0,
+            ChainEvent::Generated {
+                id: root,
+                sequence: "A".into(),
+            },
+        );
         let (x, y, z) = (log.new_id(), log.new_id(), log.new_id());
-        let m = Mutation::Insertion { index: 0, residue: 'C' };
-        log.record(1, ChainEvent::Mutated { id: x, parent: root, mutation: m, sequence: "CA".into() });
-        log.record(1, ChainEvent::Mutated { id: y, parent: root, mutation: m, sequence: "CA".into() });
-        log.record(2, ChainEvent::Recombined { id: z, parents: (x, y), cut: (1, 0), sequence: "CCA".into() });
+        let m = Mutation::Insertion {
+            index: 0,
+            residue: 'C',
+        };
+        log.record(
+            1,
+            ChainEvent::Mutated {
+                id: x,
+                parent: root,
+                mutation: m,
+                sequence: "CA".into(),
+            },
+        );
+        log.record(
+            1,
+            ChainEvent::Mutated {
+                id: y,
+                parent: root,
+                mutation: m,
+                sequence: "CA".into(),
+            },
+        );
+        log.record(
+            2,
+            ChainEvent::Recombined {
+                id: z,
+                parents: (x, y),
+                cut: (1, 0),
+                sequence: "CCA".into(),
+            },
+        );
         let ancestors = log.ancestors(z);
         assert_eq!(ancestors.iter().filter(|&&a| a == root).count(), 1);
         assert_eq!(ancestors.len(), 3);
@@ -293,15 +389,55 @@ mod tests {
     fn a_lineage_lists_the_descendants_of_a_translated_protein() {
         let mut log = EventLog::new();
         let root = log.new_id();
-        log.record(5, ChainEvent::Translated { id: root, gene: "AUGGCUUAA".into(), sequence: "MA".into() });
+        log.record(
+            5,
+            ChainEvent::Translated {
+                id: root,
+                gene: "AUGGCUUAA".into(),
+                sequence: "MA".into(),
+            },
+        );
         let (child, grand, other) = (log.new_id(), log.new_id(), log.new_id());
-        let m = Mutation::Insertion { index: 0, residue: 'C' };
-        log.record(6, ChainEvent::Mutated { id: child, parent: root, mutation: m, sequence: "CMA".into() });
-        log.record(7, ChainEvent::Mutated { id: grand, parent: child, mutation: m, sequence: "CCMA".into() });
-        log.record(8, ChainEvent::Generated { id: other, sequence: "K".into() });
+        let m = Mutation::Insertion {
+            index: 0,
+            residue: 'C',
+        };
+        log.record(
+            6,
+            ChainEvent::Mutated {
+                id: child,
+                parent: root,
+                mutation: m,
+                sequence: "CMA".into(),
+            },
+        );
+        log.record(
+            7,
+            ChainEvent::Mutated {
+                id: grand,
+                parent: child,
+                mutation: m,
+                sequence: "CCMA".into(),
+            },
+        );
+        log.record(
+            8,
+            ChainEvent::Generated {
+                id: other,
+                sequence: "K".into(),
+            },
+        );
         let rows = log.lineage(root, 10);
-        let shape: Vec<(ChainId, usize, &str)> = rows.iter().map(|r| (r.id, r.depth, r.how)).collect();
-        assert_eq!(shape, vec![(root, 0, "translated"), (child, 1, "mutated"), (grand, 2, "mutated")]);
+        let shape: Vec<(ChainId, usize, &str)> =
+            rows.iter().map(|r| (r.id, r.depth, r.how)).collect();
+        assert_eq!(
+            shape,
+            vec![
+                (root, 0, "translated"),
+                (child, 1, "mutated"),
+                (grand, 2, "mutated")
+            ]
+        );
         assert_eq!(log.lineage(root, 2).len(), 2, "capped");
         assert!(log.lineage(999, 5).is_empty());
         assert_eq!(log.translated_roots(), vec![(root, 5)]);

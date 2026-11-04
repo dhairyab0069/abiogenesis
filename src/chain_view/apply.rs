@@ -22,8 +22,14 @@ impl ChainView {
 
     pub(super) fn apply_event(&mut self, event: &ChainEvent) {
         match event {
-            ChainEvent::Generated { id, sequence } | ChainEvent::Translated { id, sequence, .. } => self.push(Row::growing(*id, sequence)),
-            ChainEvent::Mutated { id, parent, mutation, sequence } => match self.row_index(*parent) {
+            ChainEvent::Generated { id, sequence }
+            | ChainEvent::Translated { id, sequence, .. } => self.push(Row::growing(*id, sequence)),
+            ChainEvent::Mutated {
+                id,
+                parent,
+                mutation,
+                sequence,
+            } => match self.row_index(*parent) {
                 // The child takes the parent's place, as it does in the soup.
                 Some(i) => {
                     let row = &mut self.rows[i];
@@ -34,7 +40,9 @@ impl ChainView {
                 }
                 None => self.push(Row::growing(*id, sequence)),
             },
-            ChainEvent::Recombined { id, cut, sequence, .. } => {
+            ChainEvent::Recombined {
+                id, cut, sequence, ..
+            } => {
                 self.push(Row::recombined(*id, sequence, cut.0));
             }
         }

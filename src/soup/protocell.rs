@@ -99,7 +99,10 @@ impl PrimordialSoup {
     fn occupants(&self, protocell: &Protocell) -> usize {
         self.molecules
             .iter()
-            .filter(|m| (m.is_amino_acid() || m.is_strand()) && protocell.contains(m.position.x, m.position.y))
+            .filter(|m| {
+                (m.is_amino_acid() || m.is_strand())
+                    && protocell.contains(m.position.x, m.position.y)
+            })
             .count()
     }
 
@@ -107,7 +110,13 @@ impl PrimordialSoup {
     pub fn chains_in_protocells(&self) -> usize {
         self.molecules
             .iter()
-            .filter(|m| m.is_amino_acid() && self.protocells.iter().any(|p| p.contains(m.position.x, m.position.y)))
+            .filter(|m| {
+                m.is_amino_acid()
+                    && self
+                        .protocells
+                        .iter()
+                        .any(|p| p.contains(m.position.x, m.position.y))
+            })
             .count()
     }
 
@@ -121,8 +130,12 @@ impl PrimordialSoup {
         }
         self.settle_protocells();
         let before = self.protocells.len();
-        let alive: Vec<Protocell> =
-            self.protocells.iter().filter(|p| self.occupants(p) >= 2).cloned().collect();
+        let alive: Vec<Protocell> = self
+            .protocells
+            .iter()
+            .filter(|p| self.occupants(p) >= 2)
+            .cloned()
+            .collect();
         self.protocells_burst += (before - alive.len()) as u64;
         self.protocells = alive;
         if self.wetness < FORM_BELOW_WETNESS {
@@ -152,29 +165,61 @@ impl PrimordialSoup {
         // A BTreeMap keeps the order fixed, so a seeded run forms the same droplets.
         let mut grid: BTreeMap<(i64, i64), (Vec<usize>, usize)> = BTreeMap::new();
         for (i, m) in self.molecules.iter().enumerate() {
-            let free = !self.protocells.iter().any(|p| p.contains(m.position.x, m.position.y));
-            if (m.is_amino_acid() || m.is_strand() || m.is_lipid()) && m.position.y >= line && free {
-                let cell = ((m.position.x / GRID_CELL).floor() as i64, (m.position.y / GRID_CELL).floor() as i64);
+            let free = !self
+                .protocells
+                .iter()
+                .any(|p| p.contains(m.position.x, m.position.y));
+            if (m.is_amino_acid() || m.is_strand() || m.is_lipid()) && m.position.y >= line && free
+            {
+                let cell = (
+                    (m.position.x / GRID_CELL).floor() as i64,
+                    (m.position.y / GRID_CELL).floor() as i64,
+                );
                 let entry = grid.entry(cell).or_default();
-                if m.is_lipid() { entry.1 += 1 } else { entry.0.push(i) }
+                if m.is_lipid() {
+                    entry.1 += 1
+                } else {
+                    entry.0.push(i)
+                }
             }
         }
-        for (chains, lipids) in grid.values().filter(|(c, l)| c.len() >= CROWD || (c.len() >= 2 && *l >= 1)) {
+        for (chains, lipids) in grid
+            .values()
+            .filter(|(c, l)| c.len() >= CROWD || (c.len() >= 2 && *l >= 1))
+        {
             if self.protocells.len() >= MAX_PROTOCELLS {
                 break;
             }
             let n = chains.len() as f64;
-            let x = chains.iter().map(|&i| self.molecules[i].position.x).sum::<f64>() / n;
-            let y = chains.iter().map(|&i| self.molecules[i].position.y).sum::<f64>() / n;
+            let x = chains
+                .iter()
+                .map(|&i| self.molecules[i].position.x)
+                .sum::<f64>()
+                / n;
+            let y = chains
+                .iter()
+                .map(|&i| self.molecules[i].position.y)
+                .sum::<f64>()
+                / n;
             // Droplets do not overlap: skip a crowd that sits next to one already formed.
             let radius = RADIUS + LIPID_GROWTH * (*lipids).min(4) as f64;
-            if self.protocells.iter().any(|p| (p.x - x).hypot(p.y - y) < p.radius + radius) {
+            if self
+                .protocells
+                .iter()
+                .any(|p| (p.x - x).hypot(p.y - y) < p.radius + radius)
+            {
                 continue;
             }
             let id = self.next_protocell_id;
             self.next_protocell_id += 1;
             self.protocells_formed += 1;
-            self.protocells.push(Protocell { id, x, y, radius, born_step: self.step });
+            self.protocells.push(Protocell {
+                id,
+                x,
+                y,
+                radius,
+                born_step: self.step,
+            });
         }
     }
 
@@ -204,7 +249,10 @@ mod tests {
     use crate::model::{Molecule, Position};
 
     fn dry() -> Environment {
-        Environment { base_wetness: 0.1, ..Environment::default() }
+        Environment {
+            base_wetness: 0.1,
+            ..Environment::default()
+        }
     }
 
     fn chain_at(x: f64, y: f64) -> Molecule {
@@ -221,7 +269,12 @@ mod tests {
     }
 
     fn crowd() -> Vec<Molecule> {
-        vec![chain_at(200.0, 280.0), chain_at(205.0, 282.0), chain_at(198.0, 284.0), chain_at(210.0, 279.0)]
+        vec![
+            chain_at(200.0, 280.0),
+            chain_at(205.0, 282.0),
+            chain_at(198.0, 284.0),
+            chain_at(210.0, 279.0),
+        ]
     }
 
     #[test]
@@ -242,7 +295,9 @@ mod tests {
 
         // 50 chains, one per grid cell: the soup is at its cap, so nothing recombines into a crowd.
         let mut spread = PrimordialSoup::with_seed(600.0, 300.0, 300.0, 7.0, 7);
-        spread.molecules = (0..50).map(|k| chain_at((k % 10) as f64 * 60.0 + 30.0, (k / 10) as f64 * 60.0 + 30.0)).collect();
+        spread.molecules = (0..50)
+            .map(|k| chain_at((k % 10) as f64 * 60.0 + 30.0, (k / 10) as f64 * 60.0 + 30.0))
+            .collect();
         spread.set_environment(dry());
         spread.simulate_step();
         assert!(spread.protocells.is_empty());
@@ -264,7 +319,10 @@ mod tests {
     fn chains_cannot_leave_a_protocell_while_it_lasts() {
         let mut soup = PrimordialSoup::with_seed(400.0, 300.0, 1500.0, 7.0, 8);
         soup.molecules = crowd();
-        soup.set_environment(Environment { base_temperature: 1500.0, ..dry() });
+        soup.set_environment(Environment {
+            base_temperature: 1500.0,
+            ..dry()
+        });
         soup.simulate_step();
         let cell = soup.protocells[0].clone();
         for _ in 0..300 {
@@ -280,7 +338,11 @@ mod tests {
     #[test]
     fn protocells_do_not_overlap() {
         let mut chains = crowd();
-        chains.extend([chain_at(215.0, 281.0), chain_at(217.0, 283.0), chain_at(219.0, 280.0)]);
+        chains.extend([
+            chain_at(215.0, 281.0),
+            chain_at(217.0, 283.0),
+            chain_at(219.0, 280.0),
+        ]);
         let mut soup = soup_with(chains);
         soup.set_environment(dry());
         soup.simulate_step();
@@ -294,7 +356,13 @@ mod tests {
 
     #[test]
     fn keep_inside_projects_onto_the_boundary() {
-        let p = Protocell { id: 1, x: 0.0, y: 0.0, radius: 10.0, born_step: 0 };
+        let p = Protocell {
+            id: 1,
+            x: 0.0,
+            y: 0.0,
+            radius: 10.0,
+            born_step: 0,
+        };
         assert_eq!(p.keep_inside(3.0, 4.0), (3.0, 4.0));
         let (x, y) = p.keep_inside(30.0, 40.0);
         assert!(p.contains(x, y) && (x.hypot(y) - 9.8).abs() < 1e-9);
@@ -304,13 +372,19 @@ mod tests {
     fn a_dry_pool_gathers_every_molecule_in_the_pool() {
         let mut soup = PrimordialSoup::with_seed(400.0, 300.0, 300.0, 7.0, 9);
         soup.add_small_molecules();
-        soup.set_environment(Environment { base_wetness: 0.0, ..Environment::default() });
+        soup.set_environment(Environment {
+            base_wetness: 0.0,
+            ..Environment::default()
+        });
         for _ in 0..400 {
             soup.simulate_step();
         }
         let line = soup.water_line();
         assert!(line > 250.0, "water line {line}");
-        assert!(soup.molecules.iter().all(|m| m.position.y >= line - 1.0), "a molecule stayed stranded");
+        assert!(
+            soup.molecules.iter().all(|m| m.position.y >= line - 1.0),
+            "a molecule stayed stranded"
+        );
     }
 
     #[test]
@@ -324,7 +398,11 @@ mod tests {
         let mut soup = PrimordialSoup::with_seed(400.0, 300.0, 300.0, 7.0, 11);
         soup.set_environment(Environment {
             temperature_cycle: Some(Cycle::new(100.0, 30.0)),
-            wetness_cycle: Some(Cycle { period: 100.0, amplitude: 0.5, phase: 0.0 }),
+            wetness_cycle: Some(Cycle {
+                period: 100.0,
+                amplitude: 0.5,
+                phase: 0.0,
+            }),
             base_wetness: 0.5,
             ..Environment::default()
         });
@@ -354,7 +432,10 @@ mod tests {
         let mut bare = soup_with(two());
         bare.set_environment(dry());
         bare.simulate_step();
-        assert!(bare.protocells.is_empty(), "two chains alone are not a crowd");
+        assert!(
+            bare.protocells.is_empty(),
+            "two chains alone are not a crowd"
+        );
 
         let mut with_lipid = two();
         with_lipid.push({
@@ -389,7 +470,11 @@ mod tests {
     #[test]
     fn protocells_form_in_the_pool_not_in_the_air() {
         // Three chains crowded well above the water line, while the pool is dry.
-        let mut soup = soup_with(vec![chain_at(100.0, 40.0), chain_at(104.0, 42.0), chain_at(98.0, 44.0)]);
+        let mut soup = soup_with(vec![
+            chain_at(100.0, 40.0),
+            chain_at(104.0, 42.0),
+            chain_at(98.0, 44.0),
+        ]);
         soup.set_environment(dry());
         soup.simulate_step();
         assert!(soup.protocells.is_empty());
@@ -398,15 +483,24 @@ mod tests {
     #[test]
     fn a_protocell_sinks_with_the_water_line_and_keeps_its_chains() {
         let mut soup = soup_with(crowd());
-        soup.set_environment(Environment { base_wetness: 0.4, ..Environment::default() });
+        soup.set_environment(Environment {
+            base_wetness: 0.4,
+            ..Environment::default()
+        });
         soup.simulate_step();
         assert_eq!(soup.protocells.len(), 1, "no droplet formed at wetness 0.4");
-        soup.set_environment(Environment { base_wetness: 0.0, ..Environment::default() });
+        soup.set_environment(Environment {
+            base_wetness: 0.0,
+            ..Environment::default()
+        });
         for _ in 0..30 {
             soup.simulate_step();
         }
         let cell = &soup.protocells[0];
-        assert!(cell.y >= soup.water_line() - 1e-9, "droplet left hanging above the water");
+        assert!(
+            cell.y >= soup.water_line() - 1e-9,
+            "droplet left hanging above the water"
+        );
         assert!(soup.members_of(cell).len() >= 3);
     }
 }

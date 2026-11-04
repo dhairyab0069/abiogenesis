@@ -104,7 +104,11 @@ pub fn labour_bonus(roles: usize) -> f64 {
 
 /// The chance a eukaryote's daughter stays attached.
 pub fn stick_probability(in_colony: bool) -> f64 {
-    if in_colony { COLONY_STICK_CHANCE } else { STICK_CHANCE }
+    if in_colony {
+        COLONY_STICK_CHANCE
+    } else {
+        STICK_CHANCE
+    }
 }
 
 /// One cell.
@@ -148,7 +152,10 @@ impl Cell {
 
     /// How much the cell holds: membrane, genes and organelles.
     pub fn size(&self) -> f64 {
-        self.lipids as f64 + 2.0 * self.strands.len() as f64 + 3.0 * self.mitochondria as f64 + if self.nucleus { 3.0 } else { 0.0 }
+        self.lipids as f64
+            + 2.0 * self.strands.len() as f64
+            + 3.0 * self.mitochondria as f64
+            + if self.nucleus { 3.0 } else { 0.0 }
     }
 
     /// Grows with contents, like the square root of the area they fill.
@@ -191,7 +198,11 @@ impl Cell {
         if self.role == Role::Soma {
             return 0.0;
         }
-        let role = if self.role == Role::Germ { GERM_DIVISION } else { 1.0 };
+        let role = if self.role == Role::Germ {
+            GERM_DIVISION
+        } else {
+            1.0
+        };
         BASE_DIVISION * (0.5 + self.fitness()) * self.energy() * role * labour
     }
 
@@ -200,7 +211,11 @@ impl Cell {
     pub fn death_rate(&self, labour: f64) -> f64 {
         let empty = if self.strands.is_empty() { 3.0 } else { 1.0 };
         let nucleus = if self.nucleus { 0.7 } else { 1.0 };
-        let role = if self.role == Role::Soma { SOMA_DEATH } else { 1.0 };
+        let role = if self.role == Role::Soma {
+            SOMA_DEATH
+        } else {
+            1.0
+        };
         BASE_DEATH * (1.2 - self.fitness()) * empty * nucleus * role / (self.energy() * labour)
     }
 
@@ -223,24 +238,51 @@ impl Cell {
 /// Things that happen to cells, for the log in the view.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CellEvent {
-    Formed { id: u64 },
-    Divided { mother: u64, daughter: u64, attached: bool },
-    Engulfed { host: u64, guest: u64 },
-    BecameEukaryote { id: u64 },
-    ColonyFormed { colony: u64, founder: u64 },
-    Died { id: u64 },
+    Formed {
+        id: u64,
+    },
+    Divided {
+        mother: u64,
+        daughter: u64,
+        attached: bool,
+    },
+    Engulfed {
+        host: u64,
+        guest: u64,
+    },
+    BecameEukaryote {
+        id: u64,
+    },
+    ColonyFormed {
+        colony: u64,
+        founder: u64,
+    },
+    Died {
+        id: u64,
+    },
 }
 
 impl CellEvent {
     pub fn describe(&self) -> String {
         match self {
             CellEvent::Formed { id } => format!("cell {id} formed from the soup"),
-            CellEvent::Divided { mother, daughter, attached } => {
-                format!("cell {mother} divided into {daughter}{}", if *attached { " (stayed attached)" } else { "" })
+            CellEvent::Divided {
+                mother,
+                daughter,
+                attached,
+            } => {
+                format!(
+                    "cell {mother} divided into {daughter}{}",
+                    if *attached { " (stayed attached)" } else { "" }
+                )
             }
-            CellEvent::Engulfed { host, guest } => format!("cell {host} swallowed cell {guest}: a mitochondrion"),
+            CellEvent::Engulfed { host, guest } => {
+                format!("cell {host} swallowed cell {guest}: a mitochondrion")
+            }
             CellEvent::BecameEukaryote { id } => format!("cell {id} is now a eukaryote"),
-            CellEvent::ColonyFormed { colony, founder } => format!("colony {colony} began with cell {founder}"),
+            CellEvent::ColonyFormed { colony, founder } => {
+                format!("colony {colony} began with cell {founder}")
+            }
             CellEvent::Died { id } => format!("cell {id} died"),
         }
     }
@@ -252,7 +294,10 @@ mod tests {
 
     fn cell_with(strands: &[&str], lipids: u32) -> Cell {
         let mut c = Cell::new(1, 100.0, 100.0, 0);
-        c.strands = strands.iter().map(|s| Molecule::strand((*s).into())).collect();
+        c.strands = strands
+            .iter()
+            .map(|s| Molecule::strand((*s).into()))
+            .collect();
         c.lipids = lipids;
         c
     }
@@ -287,7 +332,10 @@ mod tests {
         let poor = cell_with(&["AAAAAAAA"; 4], DIVIDE_LIPIDS);
         assert!(good.division_rate(1.0) > poor.division_rate(1.0));
         assert!(good.death_rate(1.0) < poor.death_rate(1.0));
-        assert!(cell_with(&[], 5).death_rate(1.0) > cell_with(&["AAAAAAAA"], 5).death_rate(1.0), "empty cells die sooner");
+        assert!(
+            cell_with(&[], 5).death_rate(1.0) > cell_with(&["AAAAAAAA"], 5).death_rate(1.0),
+            "empty cells die sooner"
+        );
     }
 
     #[test]
@@ -300,7 +348,12 @@ mod tests {
     #[test]
     fn mitochondria_give_energy_and_a_nucleus_protects() {
         let mut c = cell_with(&["GAUCAUGC"; 4], 8);
-        let (rate, death, decay, error) = (c.division_rate(1.0), c.death_rate(1.0), c.decay_scale(), c.error_scale());
+        let (rate, death, decay, error) = (
+            c.division_rate(1.0),
+            c.death_rate(1.0),
+            c.decay_scale(),
+            c.error_scale(),
+        );
         assert!(!c.is_eukaryote());
         c.mitochondria = 1;
         assert!(!c.is_eukaryote(), "a mitochondrion alone is not enough");
@@ -346,7 +399,19 @@ mod tests {
 
     #[test]
     fn events_describe_themselves() {
-        assert!(CellEvent::Engulfed { host: 3, guest: 4 }.describe().contains("mitochondrion"));
-        assert!(CellEvent::Divided { mother: 1, daughter: 2, attached: true }.describe().contains("attached"));
+        assert!(
+            CellEvent::Engulfed { host: 3, guest: 4 }
+                .describe()
+                .contains("mitochondrion")
+        );
+        assert!(
+            CellEvent::Divided {
+                mother: 1,
+                daughter: 2,
+                attached: true
+            }
+            .describe()
+            .contains("attached")
+        );
     }
 }

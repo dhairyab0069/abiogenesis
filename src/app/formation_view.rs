@@ -28,19 +28,25 @@ pub struct FormationView {
 
 impl Default for FormationView {
     fn default() -> Self {
-        Self { scene: Formation::default(), last_tick: Instant::now() }
+        Self {
+            scene: Formation::default(),
+            last_tick: Instant::now(),
+        }
     }
 }
 
 impl FormationView {
     pub(super) fn ui(&mut self, ui: &mut egui::Ui) -> Option<Screen> {
         let now = Instant::now();
-        self.scene.advance(now.duration_since(self.last_tick).as_secs_f32().min(0.25));
+        self.scene
+            .advance(now.duration_since(self.last_tick).as_secs_f32().min(0.25));
         self.last_tick = now;
 
         let next = self.controls_ui(ui);
         egui::Panel::bottom("facts").show(ui, |ui| self.facts_ui(ui));
-        egui::CentralPanel::default().frame(egui::Frame::new().fill(MENU_BG)).show(ui, |ui| self.canvas_ui(ui));
+        egui::CentralPanel::default()
+            .frame(egui::Frame::new().fill(MENU_BG))
+            .show(ui, |ui| self.canvas_ui(ui));
 
         if self.scene.paused {
             ui.ctx().request_repaint_after(Duration::from_millis(250));
@@ -58,14 +64,25 @@ impl FormationView {
                     next = Some(Screen::Menu);
                 }
                 ui.separator();
-                if ui.button(if self.scene.paused { "Play" } else { "Pause" }).clicked() {
+                if ui
+                    .button(if self.scene.paused { "Play" } else { "Pause" })
+                    .clicked()
+                {
                     self.scene.paused = !self.scene.paused;
                 }
                 if ui.button("Restart").clicked() {
                     self.scene.restart();
                 }
                 let mut speed = self.scene.speed();
-                if ui.add(egui::Slider::new(&mut speed, MIN_SPEED..=MAX_SPEED).logarithmic(true).suffix("x").text("Speed")).changed() {
+                if ui
+                    .add(
+                        egui::Slider::new(&mut speed, MIN_SPEED..=MAX_SPEED)
+                            .logarithmic(true)
+                            .suffix("x")
+                            .text("Speed"),
+                    )
+                    .changed()
+                {
                     self.scene.set_speed(speed);
                 }
                 ui.separator();
@@ -80,7 +97,10 @@ impl FormationView {
             ui.horizontal_wrapped(|ui| {
                 let current = self.scene.locate().0;
                 for phase in Phase::ALL.into_iter().filter(|p| *p != Phase::Rest) {
-                    if ui.selectable_label(phase == current, phase.title()).clicked() {
+                    if ui
+                        .selectable_label(phase == current, phase.title())
+                        .clicked()
+                    {
                         self.scene.seek(phase);
                     }
                 }
@@ -103,8 +123,14 @@ impl FormationView {
             for (k, c) in self.scene.gene().chars().enumerate() {
                 let reading = k >= frame.start && k < frame.start + frame.codons.len() * 3;
                 let letter = self.scene.shown(Phase::Assemble, c);
-                let text = egui::RichText::new(letter.to_string()).monospace().color(base_color(c));
-                ui.label(if reading { text.underline().strong() } else { text.weak() });
+                let text = egui::RichText::new(letter.to_string())
+                    .monospace()
+                    .color(base_color(c));
+                ui.label(if reading {
+                    text.underline().strong()
+                } else {
+                    text.weak()
+                });
             }
         });
         let protein = self.scene.protein();
@@ -113,7 +139,11 @@ impl FormationView {
             "Protein: {protein}   fitness {fitness:.2}   a strand with this gene copies itself {:.2}x as fast",
             gene_boost(self.scene.gene())
         ));
-        ui.add(egui::ProgressBar::new(fitness as f32).desired_width(220.0).text("protein fitness"));
+        ui.add(
+            egui::ProgressBar::new(fitness as f32)
+                .desired_width(220.0)
+                .text("protein fitness"),
+        );
     }
 
     fn canvas_ui(&mut self, ui: &mut egui::Ui) {
@@ -125,23 +155,45 @@ impl FormationView {
             Phase::Assemble => self.draw_assemble(&painter, &layout, &snap),
             Phase::Pair => self.draw_pair(&painter, &layout, &snap),
             Phase::Twist | Phase::Unzip => self.draw_helix(&painter, &layout, &snap),
-            Phase::Translate | Phase::Fold | Phase::Rest => self.draw_translate(&painter, &layout, &snap),
+            Phase::Translate | Phase::Fold | Phase::Rest => {
+                self.draw_translate(&painter, &layout, &snap)
+            }
         }
     }
 
-    fn bead(&self, painter: &egui::Painter, layout: &Layout, phase: Phase, pos: Pos2, base: char, look: Look) {
+    fn bead(
+        &self,
+        painter: &egui::Painter,
+        layout: &Layout,
+        phase: Phase,
+        pos: Pos2,
+        base: char,
+        look: Look,
+    ) {
         let Look { alpha, scale } = look;
         let r = layout.radius * scale;
         let color = base_color(base);
         painter.circle_filled(pos, r * 1.25, color.gamma_multiply(0.18 * alpha));
         painter.circle_filled(pos, r, color.gamma_multiply(alpha));
-        painter.text(pos, Align2::CENTER_CENTER, self.scene.shown(phase, base), FontId::monospace(r * 1.15), Color32::from_rgb(20, 24, 30).gamma_multiply(alpha));
+        painter.text(
+            pos,
+            Align2::CENTER_CENTER,
+            self.scene.shown(phase, base),
+            FontId::monospace(r * 1.15),
+            Color32::from_rgb(20, 24, 30).gamma_multiply(alpha),
+        );
     }
 
     /// Row of the gene's bases at height `y`, all in place.
     fn backbone(&self, painter: &egui::Painter, layout: &Layout, y: f32, count: usize, alpha: f32) {
         for k in 1..count {
-            painter.line_segment([Pos2::new(layout.x(k as f32 - 1.0), y), Pos2::new(layout.x(k as f32), y)], Stroke::new(3.0, BOND.gamma_multiply(alpha)));
+            painter.line_segment(
+                [
+                    Pos2::new(layout.x(k as f32 - 1.0), y),
+                    Pos2::new(layout.x(k as f32), y),
+                ],
+                Stroke::new(3.0, BOND.gamma_multiply(alpha)),
+            );
         }
     }
 
@@ -155,16 +207,26 @@ impl FormationView {
             let arrived = (snap.joined - k as f32).clamp(0.0, 1.0);
             let slot = Pos2::new(layout.x(k as f32), y);
             let (sx, sy) = scatter(k, layout.rect);
-            let wobble = vec2((time * 1.3 + k as f32).sin() * 7.0, (time * 1.7 + k as f32 * 2.0).cos() * 7.0) * (1.0 - arrived);
+            let wobble = vec2(
+                (time * 1.3 + k as f32).sin() * 7.0,
+                (time * 1.7 + k as f32 * 2.0).cos() * 7.0,
+            ) * (1.0 - arrived);
             let free = Pos2::new(sx + wobble.x, sy + wobble.y);
             let pos = free.lerp(slot, ease(arrived));
             if k == in_place && arrived > 0.0 && k > 0 {
                 // the bond forming
-                painter.line_segment([Pos2::new(layout.x(k as f32 - 1.0), y), pos], Stroke::new(2.0, BOND.gamma_multiply(arrived)));
+                painter.line_segment(
+                    [Pos2::new(layout.x(k as f32 - 1.0), y), pos],
+                    Stroke::new(2.0, BOND.gamma_multiply(arrived)),
+                );
             }
             self.bead(painter, layout, snap.phase, pos, base, Look::PLAIN);
         }
-        label(painter, Pos2::new(layout.rect.center().x, layout.rect.top() + 24.0), "free nucleotides bond into a strand");
+        label(
+            painter,
+            Pos2::new(layout.rect.center().x, layout.rect.top() + 24.0),
+            "free nucleotides bond into a strand",
+        );
     }
 
     fn draw_pair(&self, painter: &egui::Painter, layout: &Layout, snap: &Snapshot) {
@@ -174,24 +236,66 @@ impl FormationView {
         let docked_whole = (snap.docked.floor() as usize).min(gene.len());
         self.backbone(painter, layout, y + GAP, docked_whole, 1.0);
         for (k, &base) in gene.iter().enumerate() {
-            self.bead(painter, layout, snap.phase, Pos2::new(layout.x(k as f32), y), base, Look::PLAIN);
+            self.bead(
+                painter,
+                layout,
+                snap.phase,
+                Pos2::new(layout.x(k as f32), y),
+                base,
+                Look::PLAIN,
+            );
             let d = (snap.docked - k as f32).clamp(0.0, 1.0);
             if d <= 0.0 {
                 continue;
             }
             let partner = crate::model::complement(base);
-            let from_below = Pos2::new(layout.x(k as f32) + 18.0 * (1.0 - d), y + GAP + 70.0 * (1.0 - ease(d)));
-            let pos = if d >= 1.0 { Pos2::new(layout.x(k as f32), y + GAP) } else { from_below };
-            self.bead(painter, layout, snap.phase, pos, partner, Look { alpha: d.min(1.0), scale: 1.0 });
+            let from_below = Pos2::new(
+                layout.x(k as f32) + 18.0 * (1.0 - d),
+                y + GAP + 70.0 * (1.0 - ease(d)),
+            );
+            let pos = if d >= 1.0 {
+                Pos2::new(layout.x(k as f32), y + GAP)
+            } else {
+                from_below
+            };
+            self.bead(
+                painter,
+                layout,
+                snap.phase,
+                pos,
+                partner,
+                Look {
+                    alpha: d.min(1.0),
+                    scale: 1.0,
+                },
+            );
             if d >= 0.85 {
-                Self::bonds(painter, layout, layout.x(k as f32), (y, y + GAP), Formation::bonds_between(base), (d - 0.85) / 0.15);
+                Self::bonds(
+                    painter,
+                    layout,
+                    layout.x(k as f32),
+                    (y, y + GAP),
+                    Formation::bonds_between(base),
+                    (d - 0.85) / 0.15,
+                );
             }
         }
-        label(painter, Pos2::new(layout.rect.center().x, layout.rect.top() + 24.0), "A pairs with U (T in DNA), C pairs with G");
+        label(
+            painter,
+            Pos2::new(layout.rect.center().x, layout.rect.top() + 24.0),
+            "A pairs with U (T in DNA), C pairs with G",
+        );
     }
 
     /// Hydrogen-bond dashes between two beads at the same x.
-    fn bonds(painter: &egui::Painter, layout: &Layout, x: f32, (y1, y2): (f32, f32), count: usize, alpha: f32) {
+    fn bonds(
+        painter: &egui::Painter,
+        layout: &Layout,
+        x: f32,
+        (y1, y2): (f32, f32),
+        count: usize,
+        alpha: f32,
+    ) {
         let (top, bottom) = (y1 + layout.radius + 2.0, y2 - layout.radius - 2.0);
         if bottom <= top {
             return;
@@ -201,7 +305,13 @@ impl FormationView {
             let dx = (i as f32 - (count as f32 - 1.0) / 2.0) * gap;
             let mut y = top;
             while y < bottom {
-                painter.line_segment([Pos2::new(x + dx, y), Pos2::new(x + dx, (y + 3.0).min(bottom))], Stroke::new(1.3, HYDROGEN.gamma_multiply(alpha.clamp(0.0, 1.0))));
+                painter.line_segment(
+                    [
+                        Pos2::new(x + dx, y),
+                        Pos2::new(x + dx, (y + 3.0).min(bottom)),
+                    ],
+                    Stroke::new(1.3, HYDROGEN.gamma_multiply(alpha.clamp(0.0, 1.0))),
+                );
                 y += 6.0;
             }
         }
@@ -223,26 +333,64 @@ impl FormationView {
             let top = Pos2::new(layout.x(k as f32), centre + wave - off * PULL);
             let bottom = Pos2::new(layout.x(k as f32), centre - wave + off * PULL);
             items.push((depth, top, *base, scale, k, true));
-            items.push((-depth, bottom, crate::model::complement(*base), 1.0 - 0.22 * depth * snap.twist.min(1.0), k, false));
+            items.push((
+                -depth,
+                bottom,
+                crate::model::complement(*base),
+                1.0 - 0.22 * depth * snap.twist.min(1.0),
+                k,
+                false,
+            ));
             // rungs fade as the strands part
             let rung = (1.0 - off) * (0.35 + 0.65 * theta.cos().abs());
             if rung > 0.05 {
-                Self::bonds(painter, layout, layout.x(k as f32), (top.y.min(bottom.y) - layout.radius, top.y.max(bottom.y) + layout.radius), Formation::bonds_between(*base), rung);
+                Self::bonds(
+                    painter,
+                    layout,
+                    layout.x(k as f32),
+                    (
+                        top.y.min(bottom.y) - layout.radius,
+                        top.y.max(bottom.y) + layout.radius,
+                    ),
+                    Formation::bonds_between(*base),
+                    rung,
+                );
             }
         }
         // backbones follow their beads
         for k in 1..n {
             for upper in [true, false] {
-                let pick = |kk: usize| items.iter().find(|i| i.4 == kk && i.5 == upper).map(|i| i.1).unwrap_or_default();
+                let pick = |kk: usize| {
+                    items
+                        .iter()
+                        .find(|i| i.4 == kk && i.5 == upper)
+                        .map(|i| i.1)
+                        .unwrap_or_default()
+                };
                 painter.line_segment([pick(k - 1), pick(k)], Stroke::new(3.0, BOND));
             }
         }
         items.sort_by(|a, b| a.0.total_cmp(&b.0));
         for (_, pos, base, scale, _, _) in items {
-            self.bead(painter, layout, snap.phase, pos, base, Look { alpha: 1.0, scale });
+            self.bead(
+                painter,
+                layout,
+                snap.phase,
+                pos,
+                base,
+                Look { alpha: 1.0, scale },
+            );
         }
-        let text = if snap.phase == Phase::Twist { "the paired strands twist into a double helix" } else { "the helix unzips into two strands" };
-        label(painter, Pos2::new(layout.rect.center().x, layout.rect.top() + 24.0), text);
+        let text = if snap.phase == Phase::Twist {
+            "the paired strands twist into a double helix"
+        } else {
+            "the helix unzips into two strands"
+        };
+        label(
+            painter,
+            Pos2::new(layout.rect.center().x, layout.rect.top() + 24.0),
+            text,
+        );
     }
 
     fn draw_translate(&self, painter: &egui::Painter, layout: &Layout, snap: &Snapshot) {
@@ -252,15 +400,32 @@ impl FormationView {
         let frame = self.scene.frame();
         self.backbone(painter, layout, y, gene.len(), 1.0);
         for (k, &base) in gene.iter().enumerate() {
-            self.bead(painter, layout, snap.phase, Pos2::new(layout.x(k as f32), y), base, Look::PLAIN);
+            self.bead(
+                painter,
+                layout,
+                snap.phase,
+                Pos2::new(layout.x(k as f32), y),
+                base,
+                Look::PLAIN,
+            );
         }
         // the start codon and the stop codon get a marker
         let mark = |k: usize, text: &str, color: Color32| {
-            painter.text(Pos2::new(layout.x(k as f32 + 1.0), y + layout.radius + 16.0), Align2::CENTER_CENTER, text, FontId::proportional(12.0), color);
+            painter.text(
+                Pos2::new(layout.x(k as f32 + 1.0), y + layout.radius + 16.0),
+                Align2::CENTER_CENTER,
+                text,
+                FontId::proportional(12.0),
+                color,
+            );
         };
         mark(frame.start, "start", Color32::from_rgb(120, 230, 150));
         if frame.is_closed() {
-            mark(frame.start + (frame.codons.len() - 1) * 3, "stop", Color32::from_rgb(255, 120, 120));
+            mark(
+                frame.start + (frame.codons.len() - 1) * 3,
+                "stop",
+                Color32::from_rgb(255, 120, 120),
+            );
         }
 
         if snap.phase == Phase::Translate && !snap.released {
@@ -281,13 +446,18 @@ impl FormationView {
         } else {
             protein.len() as f32
         };
-        let line_x = |i: usize| rect.center().x + (i as f32 - (protein.len() as f32 - 1.0) / 2.0) * AMINO_SPACING;
+        let line_x = |i: usize| {
+            rect.center().x + (i as f32 - (protein.len() as f32 - 1.0) / 2.0) * AMINO_SPACING
+        };
         let coil = |i: usize| {
             let m = protein.len().max(1) as f32;
             let radius = (m * 31.0 / std::f32::consts::TAU).max(26.0);
             let angle = i as f32 / m * std::f32::consts::TAU - 1.2;
             let wobble = if i.is_multiple_of(2) { 5.0 } else { -5.0 };
-            Pos2::new(rect.center().x + (radius + wobble) * angle.cos(), chain_y + 6.0 + (radius * 0.9 + wobble) * angle.sin())
+            Pos2::new(
+                rect.center().x + (radius + wobble) * angle.cos(),
+                chain_y + 6.0 + (radius * 0.9 + wobble) * angle.sin(),
+            )
         };
         let fold = ease(snap.fold);
         let position = |i: usize| Pos2::new(line_x(i), chain_y).lerp(coil(i), fold);
@@ -297,34 +467,71 @@ impl FormationView {
         }
         if growing && shown > 0 && snap.phase == Phase::Translate {
             let exit = Pos2::new(layout.x(snap.ribosome_at + 1.0), y - layout.radius - 70.0);
-            painter.line_segment([exit, position(shown - 1)], Stroke::new(1.5, BOND.gamma_multiply(0.5)));
+            painter.line_segment(
+                [exit, position(shown - 1)],
+                Stroke::new(1.5, BOND.gamma_multiply(0.5)),
+            );
         }
         for (i, &letter) in protein.iter().enumerate().take(shown) {
             let scale = (count - i as f32).clamp(0.0, 1.0);
-            let color: Color32 = egui::ecolor::Hsva::new(residue_hue(letter), 0.55, 0.95, 1.0).into();
+            let color: Color32 =
+                egui::ecolor::Hsva::new(residue_hue(letter), 0.55, 0.95, 1.0).into();
             let pos = position(i);
             painter.circle_filled(pos, AMINO_RADIUS * 1.25 * scale, color.gamma_multiply(0.2));
             painter.circle_filled(pos, AMINO_RADIUS * scale, color);
-            painter.text(pos, Align2::CENTER_CENTER, letter, FontId::monospace(15.0 * scale), Color32::from_rgb(20, 24, 30));
+            painter.text(
+                pos,
+                Align2::CENTER_CENTER,
+                letter,
+                FontId::monospace(15.0 * scale),
+                Color32::from_rgb(20, 24, 30),
+            );
         }
         if snap.phase == Phase::Fold || snap.phase == Phase::Rest {
-            let text = format!("{}   fitness {:.2}", self.scene.protein(), self.scene.fitness());
+            let text = format!(
+                "{}   fitness {:.2}",
+                self.scene.protein(),
+                self.scene.fitness()
+            );
             label(painter, Pos2::new(rect.center().x, chain_y - 70.0), &text);
             if snap.phase == Phase::Fold {
-                label(painter, Pos2::new(rect.center().x, chain_y - 48.0), if snap.fold < 0.99 { "released at the stop codon, folding" } else { "folded" });
+                label(
+                    painter,
+                    Pos2::new(rect.center().x, chain_y - 48.0),
+                    if snap.fold < 0.99 {
+                        "released at the stop codon, folding"
+                    } else {
+                        "folded"
+                    },
+                );
             }
         } else {
-            label(painter, Pos2::new(rect.center().x, rect.top() + 24.0), "the ribosome reads the strand and builds a protein");
+            label(
+                painter,
+                Pos2::new(rect.center().x, rect.top() + 24.0),
+                "the ribosome reads the strand and builds a protein",
+            );
         }
     }
 
     fn draw_ribosome(&self, painter: &egui::Painter, layout: &Layout, snap: &Snapshot, y: f32) {
         let centre_x = layout.x(snap.ribosome_at + 1.0);
         let width = layout.spacing * 3.2;
-        let big = Rect::from_center_size(Pos2::new(centre_x, y - layout.radius - 22.0), vec2(width, 38.0));
-        let small = Rect::from_center_size(Pos2::new(centre_x, y + layout.radius + 7.0), vec2(width * 0.9, 18.0));
+        let big = Rect::from_center_size(
+            Pos2::new(centre_x, y - layout.radius - 22.0),
+            vec2(width, 38.0),
+        );
+        let small = Rect::from_center_size(
+            Pos2::new(centre_x, y + layout.radius + 7.0),
+            vec2(width * 0.9, 18.0),
+        );
         painter.rect_filled(big, 16.0, RIBOSOME.gamma_multiply(0.75));
-        painter.rect_stroke(big, 16.0, Stroke::new(1.5, RIBOSOME), egui::StrokeKind::Outside);
+        painter.rect_stroke(
+            big,
+            16.0,
+            Stroke::new(1.5, RIBOSOME),
+            egui::StrokeKind::Outside,
+        );
         painter.rect_filled(small, 9.0, RIBOSOME.gamma_multiply(0.5));
         match &snap.codon {
             Some((codon, meaning)) => {
@@ -332,11 +539,29 @@ impl FormationView {
                     Codon::Amino(a) => (format!("{a}  {}", amino_name(*a)), TEXT),
                     Codon::Stop => ("STOP".to_string(), Color32::from_rgb(255, 120, 120)),
                 };
-                painter.text(big.center(), Align2::CENTER_CENTER, codon, FontId::monospace(16.0), Color32::WHITE);
-                painter.text(Pos2::new(centre_x, big.top() - 14.0), Align2::CENTER_CENTER, what, FontId::proportional(14.0), color);
+                painter.text(
+                    big.center(),
+                    Align2::CENTER_CENTER,
+                    codon,
+                    FontId::monospace(16.0),
+                    Color32::WHITE,
+                );
+                painter.text(
+                    Pos2::new(centre_x, big.top() - 14.0),
+                    Align2::CENTER_CENTER,
+                    what,
+                    FontId::proportional(14.0),
+                    color,
+                );
             }
             None => {
-                painter.text(big.center(), Align2::CENTER_CENTER, "scanning", FontId::proportional(12.0), TEXT);
+                painter.text(
+                    big.center(),
+                    Align2::CENTER_CENTER,
+                    "scanning",
+                    FontId::proportional(12.0),
+                    TEXT,
+                );
             }
         }
     }
@@ -350,7 +575,10 @@ struct Look {
 }
 
 impl Look {
-    const PLAIN: Look = Look { alpha: 1.0, scale: 1.0 };
+    const PLAIN: Look = Look {
+        alpha: 1.0,
+        scale: 1.0,
+    };
 }
 
 /// Where the strand's beads sit on screen.
@@ -365,7 +593,12 @@ impl Layout {
     fn new(rect: Rect, bases: usize) -> Self {
         let spacing = ((rect.width() - 80.0) / bases.max(1) as f32).clamp(14.0, 34.0);
         let first = rect.center().x - (bases.saturating_sub(1)) as f32 * spacing / 2.0;
-        Self { rect, spacing, radius: (spacing * 0.42).min(12.0), first }
+        Self {
+            rect,
+            spacing,
+            radius: (spacing * 0.42).min(12.0),
+            first,
+        }
     }
 
     /// The x of base `index` (fractional indices fall between beads).
@@ -383,9 +616,18 @@ fn ease(t: f32) -> f32 {
 fn scatter(k: usize, rect: Rect) -> (f32, f32) {
     let h = |seed: f32| ((seed.sin() * 43_758.547).fract()).abs();
     let (a, b) = (h(k as f32 * 12.989 + 1.0), h(k as f32 * 78.233 + 2.0));
-    (rect.left() + 40.0 + a * (rect.width() - 80.0), rect.top() + rect.height() * (0.55 + 0.35 * b))
+    (
+        rect.left() + 40.0 + a * (rect.width() - 80.0),
+        rect.top() + rect.height() * (0.55 + 0.35 * b),
+    )
 }
 
 fn label(painter: &egui::Painter, pos: Pos2, text: &str) {
-    painter.text(pos, Align2::CENTER_CENTER, text, FontId::proportional(15.0), TEXT.gamma_multiply(0.8));
+    painter.text(
+        pos,
+        Align2::CENTER_CENTER,
+        text,
+        FontId::proportional(15.0),
+        TEXT.gamma_multiply(0.8),
+    );
 }

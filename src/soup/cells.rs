@@ -17,7 +17,10 @@
 
 use super::PrimordialSoup;
 use super::cell::*;
-use super::chemistry::{COPY_ERROR, MAX_FREE_NUCLEOTIDES, MAX_LIPIDS, MAX_STRANDS, copy_strand, decay_probability, replication_rate};
+use super::chemistry::{
+    COPY_ERROR, MAX_FREE_NUCLEOTIDES, MAX_LIPIDS, MAX_STRANDS, copy_strand, decay_probability,
+    replication_rate,
+};
 use crate::model::{BASES, Molecule, Position};
 use rand::Rng;
 use std::collections::{HashMap, VecDeque};
@@ -95,7 +98,15 @@ pub(super) struct CellLayer {
 
 impl Default for CellLayer {
     fn default() -> Self {
-        Self { on: false, next_cell_id: 1, next_colony_id: 1, stats: CellStats::default(), events: VecDeque::new(), formations: VecDeque::new(), engulfs: VecDeque::new() }
+        Self {
+            on: false,
+            next_cell_id: 1,
+            next_colony_id: 1,
+            stats: CellStats::default(),
+            events: VecDeque::new(),
+            formations: VecDeque::new(),
+            engulfs: VecDeque::new(),
+        }
     }
 }
 
@@ -121,7 +132,9 @@ impl PrimordialSoup {
             let mut cell = self.new_cell(at.x, at.y);
             for _ in 0..3 {
                 let len = self.rng.random_range(8..=12);
-                let seq: String = (0..len).map(|_| BASES[self.rng.random_range(0..BASES.len())]).collect();
+                let seq: String = (0..len)
+                    .map(|_| BASES[self.rng.random_range(0..BASES.len())])
+                    .collect();
                 cell.strands.push(Molecule::strand(seq));
             }
             cell.lipids = 6;
@@ -172,7 +185,11 @@ impl PrimordialSoup {
 
     /// The average cell fitness, or 0 with no cells.
     pub fn mean_cell_fitness(&self) -> f64 {
-        if self.cells.is_empty() { 0.0 } else { self.cells.iter().map(Cell::fitness).sum::<f64>() / self.cells.len() as f64 }
+        if self.cells.is_empty() {
+            0.0
+        } else {
+            self.cells.iter().map(Cell::fitness).sum::<f64>() / self.cells.len() as f64
+        }
     }
 
     /// Members of each colony that has any.
@@ -198,7 +215,10 @@ impl PrimordialSoup {
                 }
             }
         }
-        roles.into_iter().map(|(id, r)| (id, labour_bonus(r.len()))).collect()
+        roles
+            .into_iter()
+            .map(|(id, r)| (id, labour_bonus(r.len())))
+            .collect()
     }
 
     fn new_cell(&mut self, x: f64, y: f64) -> Cell {
@@ -238,20 +258,29 @@ impl PrimordialSoup {
         if self.cells.len() >= MAX_CELLS || self.rng.random::<f64>() >= FORM_RATE {
             return;
         }
-        let lipids: Vec<usize> = (0..self.molecules.len()).filter(|&i| self.molecules[i].is_lipid()).collect();
+        let lipids: Vec<usize> = (0..self.molecules.len())
+            .filter(|&i| self.molecules[i].is_lipid())
+            .collect();
         if lipids.len() < FORM_LIPIDS {
             return;
         }
         let here = self.molecules[lipids[self.rng.random_range(0..lipids.len())]].position;
         let near = |m: &Molecule| m.position.distance_to(&here) <= FORM_RADIUS;
-        let lipids: Vec<usize> = lipids.into_iter().filter(|&i| near(&self.molecules[i])).collect();
+        let lipids: Vec<usize> = lipids
+            .into_iter()
+            .filter(|&i| near(&self.molecules[i]))
+            .collect();
         let mut strands: Vec<(usize, f64)> = (0..self.molecules.len())
             .filter(|&i| self.molecules[i].is_strand())
             .map(|i| (i, self.molecules[i].position.distance_to(&here)))
             .filter(|&(_, d)| d <= FORM_DRAW_RADIUS)
             .collect();
         strands.sort_by(|a, b| a.1.total_cmp(&b.1).then(a.0.cmp(&b.0)));
-        let strands: Vec<usize> = strands.into_iter().take(FORM_STRANDS).map(|(i, _)| i).collect();
+        let strands: Vec<usize> = strands
+            .into_iter()
+            .take(FORM_STRANDS)
+            .map(|(i, _)| i)
+            .collect();
         if lipids.len() < FORM_LIPIDS || strands.is_empty() {
             return;
         }
@@ -286,7 +315,15 @@ impl PrimordialSoup {
     pub(super) fn absorb(&mut self, i: usize) {
         let cell = &self.cells[i];
         let (at, reach) = (Position::new(cell.x, cell.y), cell.reach());
-        let priority = |m: &Molecule| if m.is_strand() { 0 } else if m.is_lipid() { 1 } else { 2 };
+        let priority = |m: &Molecule| {
+            if m.is_strand() {
+                0
+            } else if m.is_lipid() {
+                1
+            } else {
+                2
+            }
+        };
         let mut near: Vec<(usize, u8, f64)> = self
             .molecules
             .iter()
@@ -336,12 +373,17 @@ impl PrimordialSoup {
         let wetness = self.wetness;
         let Self { cells, rng, .. } = self;
         let cell = &mut cells[i];
-        if !cell.strands.is_empty() && cell.lipids < LIPID_CAP && rng.random::<f64>() < LIPID_SYNTHESIS * cell.energy() {
+        if !cell.strands.is_empty()
+            && cell.lipids < LIPID_CAP
+            && rng.random::<f64>() < LIPID_SYNTHESIS * cell.energy()
+        {
             cell.lipids += 1;
         }
         let (energy, error) = (cell.energy(), COPY_ERROR * cell.error_scale());
         for k in 0..cell.strands.len() {
-            let Some(seq) = cell.strands[k].strand_sequence().map(str::to_string) else { continue };
+            let Some(seq) = cell.strands[k].strand_sequence().map(str::to_string) else {
+                continue;
+            };
             if cell.strands.len() >= MAX_CELL_STRANDS || cell.nucleotides < seq.len() as u32 {
                 continue;
             }
@@ -362,14 +404,22 @@ impl PrimordialSoup {
     pub(super) fn share_food(&mut self) {
         for f in 0..self.cells.len() {
             let giver = &self.cells[f];
-            let (Some(colony), Role::Feeder) = (giver.colony, giver.role) else { continue };
+            let (Some(colony), Role::Feeder) = (giver.colony, giver.role) else {
+                continue;
+            };
             if giver.nucleotides < 4 {
                 continue;
             }
             let neediest = (0..self.cells.len())
-                .filter(|&j| j != f && self.cells[j].colony == Some(colony) && self.cells[j].nucleotides < NUCLEOTIDE_CAP)
+                .filter(|&j| {
+                    j != f
+                        && self.cells[j].colony == Some(colony)
+                        && self.cells[j].nucleotides < NUCLEOTIDE_CAP
+                })
                 .min_by_key(|&j| (self.cells[j].nucleotides, j));
-            if let Some(j) = neediest.filter(|&j| self.cells[j].nucleotides + 1 < self.cells[f].nucleotides) {
+            if let Some(j) =
+                neediest.filter(|&j| self.cells[j].nucleotides + 1 < self.cells[f].nucleotides)
+            {
                 self.cells[f].nucleotides -= 1;
                 self.cells[j].nucleotides += 1;
             }
@@ -395,10 +445,22 @@ impl PrimordialSoup {
     /// Cell `g` becomes a mitochondrion of cell `h`; its strands move into the
     /// host's nucleus (what does not fit is released into the soup).
     pub(super) fn swallow(&mut self, h: usize, g: usize) {
-        let (offset, guest_radius) = ((self.cells[g].x - self.cells[h].x, self.cells[g].y - self.cells[h].y), self.cells[g].radius());
+        let (offset, guest_radius) = (
+            (
+                self.cells[g].x - self.cells[h].x,
+                self.cells[g].y - self.cells[h].y,
+            ),
+            self.cells[g].radius(),
+        );
         let guest = self.cells.remove(g);
         let h = if g < h { h - 1 } else { h };
-        let record = EngulfRecord { host_id: self.cells[h].id, step: self.step, guest_offset: offset, guest_radius, new_nucleus: !self.cells[h].nucleus };
+        let record = EngulfRecord {
+            host_id: self.cells[h].id,
+            step: self.step,
+            guest_offset: offset,
+            guest_radius,
+            new_nucleus: !self.cells[h].nucleus,
+        };
         if self.cell_layer.engulfs.len() >= ENGULF_RECORDS {
             self.cell_layer.engulfs.pop_front();
         }
@@ -413,14 +475,21 @@ impl PrimordialSoup {
         let room = MAX_CELL_STRANDS - host.strands.len().min(MAX_CELL_STRANDS);
         let (host_pos, mut overflow) = (Position::new(host.x, host.y), Vec::new());
         for (k, s) in guest.strands.into_iter().enumerate() {
-            if k < room { host.strands.push(s) } else { overflow.push(s) }
+            if k < room {
+                host.strands.push(s)
+            } else {
+                overflow.push(s)
+            }
         }
         let now_eukaryote = host.is_eukaryote();
         for s in overflow {
             self.release_strand(s, host_pos);
         }
         self.cell_layer.stats.engulfments += 1;
-        self.log_cell(CellEvent::Engulfed { host: host_id, guest: guest_id });
+        self.log_cell(CellEvent::Engulfed {
+            host: host_id,
+            guest: guest_id,
+        });
         if now_eukaryote && !was_eukaryote {
             self.cell_layer.stats.eukaryotes_formed += 1;
             self.log_cell(CellEvent::BecameEukaryote { id: host_id });
@@ -447,7 +516,11 @@ impl PrimordialSoup {
         let labour = self.labour();
         let mut dead = Vec::new();
         for i in 0..self.cells.len() {
-            let l = self.cells[i].colony.and_then(|c| labour.get(&c)).copied().unwrap_or(1.0);
+            let l = self.cells[i]
+                .colony
+                .and_then(|c| labour.get(&c))
+                .copied()
+                .unwrap_or(1.0);
             if self.rng.random::<f64>() < self.cells[i].death_rate(l) {
                 dead.push(i);
             }
@@ -486,19 +559,35 @@ impl PrimordialSoup {
     pub(super) fn divide_ready(&mut self) {
         let labour = self.labour();
         let sizes = self.colony_sizes();
-        let ready: Vec<u64> = self.cells.iter().filter(|c| c.division_ready()).map(|c| c.id).collect();
+        let ready: Vec<u64> = self
+            .cells
+            .iter()
+            .filter(|c| c.division_ready())
+            .map(|c| c.id)
+            .collect();
         for id in ready {
             if self.cells.len() >= MAX_CELLS {
                 return;
             }
-            let Some(i) = self.cells.iter().position(|c| c.id == id) else { continue };
+            let Some(i) = self.cells.iter().position(|c| c.id == id) else {
+                continue;
+            };
             let c = &self.cells[i];
-            let l = c.colony.and_then(|k| labour.get(&k)).copied().unwrap_or(1.0);
+            let l = c
+                .colony
+                .and_then(|k| labour.get(&k))
+                .copied()
+                .unwrap_or(1.0);
             if self.rng.random::<f64>() >= c.division_rate(l) {
                 continue;
             }
-            let room = c.colony.and_then(|k| sizes.get(&k)).is_none_or(|&n| n < MAX_COLONY_SIZE);
-            let attach = c.is_eukaryote() && room && self.rng.random::<f64>() < stick_probability(c.colony.is_some());
+            let room = c
+                .colony
+                .and_then(|k| sizes.get(&k))
+                .is_none_or(|&n| n < MAX_COLONY_SIZE);
+            let attach = c.is_eukaryote()
+                && room
+                && self.rng.random::<f64>() < stick_probability(c.colony.is_some());
             self.divide(i, attach);
         }
     }
@@ -518,7 +607,11 @@ impl PrimordialSoup {
         let (mut keep, mut give) = (Vec::new(), Vec::new());
         for (k, s) in strands.into_iter().enumerate() {
             let s = self.maybe_miscopy(s, error);
-            if k % 2 == 0 { keep.push(s) } else { give.push(s) }
+            if k % 2 == 0 {
+                keep.push(s)
+            } else {
+                give.push(s)
+            }
         }
         let mut daughter = self.new_cell(mx, my);
         let mother = &mut self.cells[i];
@@ -535,7 +628,10 @@ impl PrimordialSoup {
         let (mother_id, daughter_id) = (mother.id, daughter.id);
         let gap = mother_radius + daughter.radius() - if attach { 4.0 } else { -6.0 };
         let angle = self.rng.random_range(0.0..std::f64::consts::TAU);
-        let r = daughter.radius().min(self.width / 2.0).min(self.height / 2.0);
+        let r = daughter
+            .radius()
+            .min(self.width / 2.0)
+            .min(self.height / 2.0);
         daughter.x = (mx + gap * angle.cos()).clamp(r, self.width - r);
         daughter.y = (my + gap * angle.sin()).clamp(r, self.height - r);
         if attach {
@@ -547,23 +643,37 @@ impl PrimordialSoup {
                     self.cells[i].colony = Some(c);
                     self.cells[i].role = Role::Germ;
                     self.cell_layer.stats.colonies_formed += 1;
-                    self.log_cell(CellEvent::ColonyFormed { colony: c, founder: mother_id });
+                    self.log_cell(CellEvent::ColonyFormed {
+                        colony: c,
+                        founder: mother_id,
+                    });
                     c
                 }
             };
-            let count = |role: Role| self.cells.iter().filter(|c| c.colony == Some(colony) && c.role == role).count();
+            let count = |role: Role| {
+                self.cells
+                    .iter()
+                    .filter(|c| c.colony == Some(colony) && c.role == role)
+                    .count()
+            };
             daughter.colony = Some(colony);
             daughter.role = next_role(count(Role::Germ), count(Role::Soma), count(Role::Feeder));
         }
         self.cell_layer.stats.divisions += 1;
-        self.log_cell(CellEvent::Divided { mother: mother_id, daughter: daughter_id, attached: attach });
+        self.log_cell(CellEvent::Divided {
+            mother: mother_id,
+            daughter: daughter_id,
+            attached: attach,
+        });
         self.cells.push(daughter);
         Some(self.cells.len() - 1)
     }
 
     /// With probability `error`, one base of the strand is replaced by another.
     fn maybe_miscopy(&mut self, strand: Molecule, error: f64) -> Molecule {
-        let Some(seq) = strand.strand_sequence().filter(|s| !s.is_empty()) else { return strand };
+        let Some(seq) = strand.strand_sequence().filter(|s| !s.is_empty()) else {
+            return strand;
+        };
         if self.rng.random::<f64>() >= error {
             return strand;
         }
@@ -592,7 +702,10 @@ impl PrimordialSoup {
         let (w, h) = (self.width, self.height);
         let mut moved: Vec<u64> = Vec::new();
         for i in 0..self.cells.len() {
-            let (dx, dy) = ((self.rng.random::<f64>() - 0.5) * scale, (self.rng.random::<f64>() - 0.5) * scale);
+            let (dx, dy) = (
+                (self.rng.random::<f64>() - 0.5) * scale,
+                (self.rng.random::<f64>() - 0.5) * scale,
+            );
             match self.cells[i].colony {
                 None => {
                     let r = self.cells[i].radius().min(w / 2.0).min(h / 2.0);
@@ -602,9 +715,23 @@ impl PrimordialSoup {
                 }
                 Some(k) if !moved.contains(&k) => {
                     moved.push(k);
-                    let members: Vec<usize> = (0..self.cells.len()).filter(|&j| self.cells[j].colony == Some(k)).collect();
-                    let dx = clamp_shift(dx, members.iter().map(|&j| (self.cells[j].x, self.cells[j].radius())), w);
-                    let dy = clamp_shift(dy, members.iter().map(|&j| (self.cells[j].y, self.cells[j].radius())), h);
+                    let members: Vec<usize> = (0..self.cells.len())
+                        .filter(|&j| self.cells[j].colony == Some(k))
+                        .collect();
+                    let dx = clamp_shift(
+                        dx,
+                        members
+                            .iter()
+                            .map(|&j| (self.cells[j].x, self.cells[j].radius())),
+                        w,
+                    );
+                    let dy = clamp_shift(
+                        dy,
+                        members
+                            .iter()
+                            .map(|&j| (self.cells[j].y, self.cells[j].radius())),
+                        h,
+                    );
                     for j in members {
                         self.cells[j].x += dx;
                         self.cells[j].y += dy;
@@ -631,9 +758,18 @@ pub(super) fn can_engulf(host: &Cell, guest: &Cell) -> bool {
 /// The shift to apply to every coordinate of a body so that none leaves `0..limit`.
 /// `shift` itself when it fits, else as much of it as does (0 when the body is wider than the world).
 fn clamp_shift(shift: f64, members: impl Iterator<Item = (f64, f64)> + Clone, limit: f64) -> f64 {
-    let lo = members.clone().map(|(p, r)| r - p).fold(f64::NEG_INFINITY, f64::max);
-    let hi = members.map(|(p, r)| limit - r - p).fold(f64::INFINITY, f64::min);
-    if lo > hi { 0.0 } else { shift.clamp(lo.min(0.0), hi.max(0.0)) }
+    let lo = members
+        .clone()
+        .map(|(p, r)| r - p)
+        .fold(f64::NEG_INFINITY, f64::max);
+    let hi = members
+        .map(|(p, r)| limit - r - p)
+        .fold(f64::INFINITY, f64::min);
+    if lo > hi {
+        0.0
+    } else {
+        shift.clamp(lo.min(0.0), hi.max(0.0))
+    }
 }
 
 #[cfg(test)]
@@ -654,7 +790,10 @@ mod tests {
     fn bare() -> PrimordialSoup {
         let mut soup = PrimordialSoup::with_seed(800.0, 600.0, 300.0, 7.0, 61);
         soup.molecules.clear();
-        soup.set_environment(Environment { base_wetness: 0.0, ..Environment::default() });
+        soup.set_environment(Environment {
+            base_wetness: 0.0,
+            ..Environment::default()
+        });
         soup.enable_cells();
         soup
     }
@@ -669,7 +808,8 @@ mod tests {
     }
 
     fn total_strands(soup: &PrimordialSoup) -> usize {
-        soup.molecules.iter().filter(|m| m.is_strand()).count() + soup.cells.iter().map(|c| c.strands.len()).sum::<usize>()
+        soup.molecules.iter().filter(|m| m.is_strand()).count()
+            + soup.cells.iter().map(|c| c.strands.len()).sum::<usize>()
     }
 
     #[test]
@@ -690,19 +830,41 @@ mod tests {
         }
         assert_eq!(soup.cells.len(), 1);
         let cell = &soup.cells[0];
-        let record = soup.formation_records().back().expect("the formation was recorded");
-        assert_eq!((record.cell_id, record.lipids.len(), record.strands.len()), (cell.id, 3, 1));
-        assert!(record.lipids.contains(&(200.0, 200.0)) && record.strands == vec![(260.0, 230.0)], "where they were");
-        assert_eq!((cell.lipids, cell.strands.len()), (3, 1), "the near strand came in, the far one did not");
-        assert_eq!(soup.molecules.len(), 1, "everything the cell holds left the soup");
+        let record = soup
+            .formation_records()
+            .back()
+            .expect("the formation was recorded");
+        assert_eq!(
+            (record.cell_id, record.lipids.len(), record.strands.len()),
+            (cell.id, 3, 1)
+        );
+        assert!(
+            record.lipids.contains(&(200.0, 200.0)) && record.strands == vec![(260.0, 230.0)],
+            "where they were"
+        );
+        assert_eq!(
+            (cell.lipids, cell.strands.len()),
+            (3, 1),
+            "the near strand came in, the far one did not"
+        );
+        assert_eq!(
+            soup.molecules.len(),
+            1,
+            "everything the cell holds left the soup"
+        );
         assert_eq!(soup.cell_stats().formed, 1);
-        assert!(matches!(soup.cell_events().back(), Some((_, CellEvent::Formed { .. }))));
+        assert!(matches!(
+            soup.cell_events().back(),
+            Some((_, CellEvent::Formed { .. }))
+        ));
     }
 
     #[test]
     fn no_strands_nearby_means_no_cell() {
         let mut soup = bare();
-        soup.molecules = (0..4).map(|k| at(Molecule::lipid(), 200.0 + k as f64 * 5.0, 200.0)).collect();
+        soup.molecules = (0..4)
+            .map(|k| at(Molecule::lipid(), 200.0 + k as f64 * 5.0, 200.0))
+            .collect();
         for _ in 0..2_000 {
             soup.form_cell();
         }
@@ -727,7 +889,10 @@ mod tests {
             soup.absorb(i);
         }
         let cell = &soup.cells[0];
-        assert_eq!((cell.lipids, cell.nucleotides, cell.strands.len()), (1, 1, 1));
+        assert_eq!(
+            (cell.lipids, cell.nucleotides, cell.strands.len()),
+            (1, 1, 1)
+        );
         assert_eq!(soup.molecules.len(), 1);
     }
 
@@ -735,13 +900,21 @@ mod tests {
     fn a_full_cell_takes_in_no_more() {
         let mut soup = bare();
         let i = ready_cell(&mut soup, 300.0, 300.0);
-        soup.cells[i].strands.resize(MAX_CELL_STRANDS, strand("GAUCAUGC"));
+        soup.cells[i]
+            .strands
+            .resize(MAX_CELL_STRANDS, strand("GAUCAUGC"));
         soup.cells[i].lipids = LIPID_CAP;
-        soup.molecules = vec![at(strand("AAAAAA"), 300.0, 300.0), at(Molecule::lipid(), 301.0, 300.0)];
+        soup.molecules = vec![
+            at(strand("AAAAAA"), 300.0, 300.0),
+            at(Molecule::lipid(), 301.0, 300.0),
+        ];
         for _ in 0..300 {
             soup.absorb(i);
         }
-        assert_eq!((soup.cells[i].strands.len(), soup.cells[i].lipids), (MAX_CELL_STRANDS, LIPID_CAP));
+        assert_eq!(
+            (soup.cells[i].strands.len(), soup.cells[i].lipids),
+            (MAX_CELL_STRANDS, LIPID_CAP)
+        );
         assert_eq!(soup.molecules.len(), 2);
     }
 
@@ -759,7 +932,10 @@ mod tests {
             }
         }
         assert!(soup.cells[i].strands.len() >= 2);
-        assert_eq!(soup.cells[i].nucleotides, 0, "the copy used up eight nucleotides");
+        assert_eq!(
+            soup.cells[i].nucleotides, 0,
+            "the copy used up eight nucleotides"
+        );
     }
 
     #[test]
@@ -797,7 +973,11 @@ mod tests {
     fn dividing_shares_the_contents_and_keeps_the_family_tree() {
         let mut soup = bare();
         let i = ready_cell(&mut soup, 300.0, 300.0);
-        let (strands, lipids, nucleotides) = (soup.cells[i].strands.len(), soup.cells[i].lipids, soup.cells[i].nucleotides);
+        let (strands, lipids, nucleotides) = (
+            soup.cells[i].strands.len(),
+            soup.cells[i].lipids,
+            soup.cells[i].nucleotides,
+        );
         let d = soup.divide(i, false).expect("room for a daughter");
         let (mother, daughter) = (&soup.cells[i], &soup.cells[d]);
         assert_eq!(mother.strands.len() + daughter.strands.len(), strands);
@@ -805,9 +985,24 @@ mod tests {
         assert_eq!(mother.nucleotides + daughter.nucleotides, nucleotides);
         assert_eq!((daughter.parent, daughter.generation), (Some(mother.id), 1));
         assert!(daughter.colony.is_none() && mother.colony.is_none());
-        assert!(mother.strands.iter().chain(&daughter.strands).all(|s| s.strand_sequence().is_some_and(|q| q.len() == 8)));
+        assert!(
+            mother
+                .strands
+                .iter()
+                .chain(&daughter.strands)
+                .all(|s| s.strand_sequence().is_some_and(|q| q.len() == 8))
+        );
         assert_eq!(soup.cell_stats().divisions, 1);
-        assert!(matches!(soup.cell_events().back(), Some((_, CellEvent::Divided { attached: false, .. }))));
+        assert!(matches!(
+            soup.cell_events().back(),
+            Some((
+                _,
+                CellEvent::Divided {
+                    attached: false,
+                    ..
+                }
+            ))
+        ));
     }
 
     #[test]
@@ -824,7 +1019,10 @@ mod tests {
                 changed += (s.strand_sequence() != Some("GAUCAUGC")) as usize;
             }
         }
-        assert!(changed > 0 && changed * 4 < total, "{changed} of {total} strands changed");
+        assert!(
+            changed > 0 && changed * 4 < total,
+            "{changed} of {total} strands changed"
+        );
     }
 
     #[test]
@@ -850,7 +1048,11 @@ mod tests {
     fn division_stops_at_the_cell_cap() {
         let mut soup = bare();
         for k in 0..MAX_CELLS {
-            ready_cell(&mut soup, 30.0 + (k % 12) as f64 * 60.0, 60.0 + (k / 12) as f64 * 100.0);
+            ready_cell(
+                &mut soup,
+                30.0 + (k % 12) as f64 * 60.0,
+                60.0 + (k / 12) as f64 * 100.0,
+            );
         }
         assert!(soup.divide(0, false).is_none());
         for _ in 0..500 {
@@ -872,7 +1074,10 @@ mod tests {
             1
         };
         assert!(can_engulf(&soup.cells[host], &soup.cells[guest]));
-        assert!(!can_engulf(&soup.cells[guest], &soup.cells[host]), "the small cell cannot swallow the big one");
+        assert!(
+            !can_engulf(&soup.cells[guest], &soup.cells[host]),
+            "the small cell cannot swallow the big one"
+        );
         let (guest_id, host_strands) = (soup.cells[guest].id, soup.cells[host].strands.len());
         for _ in 0..2_000 {
             soup.engulf();
@@ -883,14 +1088,29 @@ mod tests {
         assert_eq!(soup.cells.len(), 1);
         let h = &soup.cells[0];
         assert!(h.mitochondria == 1 && h.nucleus && h.is_eukaryote());
-        assert_eq!(h.strands.len(), host_strands + 1, "the guest's strand moved into the nucleus");
+        assert_eq!(
+            h.strands.len(),
+            host_strands + 1,
+            "the guest's strand moved into the nucleus"
+        );
         assert_eq!(soup.cell_stats().engulfments, 1);
         let rec = soup.engulf_records().back().expect("recorded");
-        assert_eq!((rec.host_id, rec.guest_offset, rec.new_nucleus), (soup.cells[0].id, (10.0, 5.0), true));
+        assert_eq!(
+            (rec.host_id, rec.guest_offset, rec.new_nucleus),
+            (soup.cells[0].id, (10.0, 5.0), true)
+        );
         assert!(rec.guest_radius > 0.0 && soup.engulf_records().len() == 1);
         assert_eq!(soup.cell_stats().eukaryotes_formed, 1);
-        assert!(soup.cell_events().iter().any(|(_, e)| matches!(e, CellEvent::Engulfed { guest: g, .. } if *g == guest_id)));
-        assert!(soup.cell_events().iter().any(|(_, e)| matches!(e, CellEvent::BecameEukaryote { .. })));
+        assert!(
+            soup.cell_events()
+                .iter()
+                .any(|(_, e)| matches!(e, CellEvent::Engulfed { guest: g, .. } if *g == guest_id))
+        );
+        assert!(
+            soup.cell_events()
+                .iter()
+                .any(|(_, e)| matches!(e, CellEvent::BecameEukaryote { .. }))
+        );
     }
 
     #[test]
@@ -908,18 +1128,26 @@ mod tests {
         soup.cells[b].x = 305.0;
         soup.cells[b].nucleus = true;
         soup.cells[b].mitochondria = 1;
-        assert!(!can_engulf(&soup.cells[a], &soup.cells[b]), "a eukaryote is not food");
+        assert!(
+            !can_engulf(&soup.cells[a], &soup.cells[b]),
+            "a eukaryote is not food"
+        );
         soup.cells[b].nucleus = false;
         soup.cells[b].mitochondria = 0;
         soup.cells[a].mitochondria = MAX_MITOCHONDRIA;
-        assert!(!can_engulf(&soup.cells[a], &soup.cells[b]), "the host has enough mitochondria");
+        assert!(
+            !can_engulf(&soup.cells[a], &soup.cells[b]),
+            "the host has enough mitochondria"
+        );
     }
 
     #[test]
     fn swallowing_releases_strands_that_do_not_fit() {
         let mut soup = bare();
         let host = ready_cell(&mut soup, 300.0, 300.0);
-        soup.cells[host].strands.resize(MAX_CELL_STRANDS - 1, strand("GAUCAUGC"));
+        soup.cells[host]
+            .strands
+            .resize(MAX_CELL_STRANDS - 1, strand("GAUCAUGC"));
         let mut guest = soup.new_cell(305.0, 300.0);
         guest.strands = vec![strand("GGUCAUAC"), strand("GGUCAUAA"), strand("GGUCAUAG")];
         soup.cells.push(guest);
@@ -937,9 +1165,15 @@ mod tests {
         let d = soup.divide(i, true).unwrap();
         let colony = soup.cells[i].colony.expect("a colony began");
         assert_eq!(soup.cells[d].colony, Some(colony));
-        assert_eq!((soup.cells[i].role, soup.cells[d].role), (Role::Germ, Role::Soma));
+        assert_eq!(
+            (soup.cells[i].role, soup.cells[d].role),
+            (Role::Germ, Role::Soma)
+        );
         let gap = (soup.cells[i].x - soup.cells[d].x).hypot(soup.cells[i].y - soup.cells[d].y);
-        assert!(gap <= soup.cells[i].radius() + soup.cells[d].radius(), "touching");
+        assert!(
+            gap <= soup.cells[i].radius() + soup.cells[d].radius(),
+            "touching"
+        );
         assert!(soup.cells[d].is_eukaryote());
         assert_eq!(soup.colony_count(), 1);
         assert_eq!(soup.cell_stats().colonies_formed, 1);
@@ -979,22 +1213,38 @@ mod tests {
     #[test]
     fn colonies_move_as_one_body_and_stay_in_bounds() {
         let mut soup = bare();
-        soup.set_environment(Environment { base_temperature: 900.0, base_wetness: 0.0, ..Environment::default() });
+        soup.set_environment(Environment {
+            base_temperature: 900.0,
+            base_wetness: 0.0,
+            ..Environment::default()
+        });
         let i = ready_cell(&mut soup, 70.0, 70.0);
         soup.cells[i].nucleus = true;
         soup.cells[i].mitochondria = 1;
         let d = soup.divide(i, true).unwrap();
-        let offset = |s: &PrimordialSoup| (s.cells[d].x - s.cells[i].x, s.cells[d].y - s.cells[i].y);
+        let offset =
+            |s: &PrimordialSoup| (s.cells[d].x - s.cells[i].x, s.cells[d].y - s.cells[i].y);
         let before = offset(&soup);
         for _ in 0..500 {
             soup.move_cells();
             let (dx, dy) = offset(&soup);
-            assert!((dx - before.0).abs() < 1e-6 && (dy - before.1).abs() < 1e-6, "members drifted apart");
+            assert!(
+                (dx - before.0).abs() < 1e-6 && (dy - before.1).abs() < 1e-6,
+                "members drifted apart"
+            );
             for c in &soup.cells {
-                assert!(c.x - c.radius() >= -1e-6 && c.y - c.radius() >= -1e-6 && c.x + c.radius() <= 800.0 + 1e-6 && c.y + c.radius() <= 600.0 + 1e-6);
+                assert!(
+                    c.x - c.radius() >= -1e-6
+                        && c.y - c.radius() >= -1e-6
+                        && c.x + c.radius() <= 800.0 + 1e-6
+                        && c.y + c.radius() <= 600.0 + 1e-6
+                );
             }
         }
-        assert!(soup.cells[i].x != 70.0 || soup.cells[i].y != 70.0, "it did move");
+        assert!(
+            soup.cells[i].x != 70.0 || soup.cells[i].y != 70.0,
+            "it did move"
+        );
     }
 
     #[test]
@@ -1024,7 +1274,11 @@ mod tests {
             soup.share_food();
         }
         assert!(soup.cells[i].nucleotides > 0 && soup.cells[d].nucleotides < 10);
-        assert_eq!(soup.cells[i].nucleotides + soup.cells[d].nucleotides, 10, "food is moved, not made");
+        assert_eq!(
+            soup.cells[i].nucleotides + soup.cells[d].nucleotides,
+            10,
+            "food is moved, not made"
+        );
     }
 
     #[test]
@@ -1032,9 +1286,20 @@ mod tests {
         let mut soup = bare();
         let i = ready_cell(&mut soup, 300.0, 300.0);
         let cell = soup.cells.remove(i);
-        let (strands, lipids, nucleotides) = (cell.strands.len(), cell.lipids as usize, cell.nucleotides as usize);
+        let (strands, lipids, nucleotides) = (
+            cell.strands.len(),
+            cell.lipids as usize,
+            cell.nucleotides as usize,
+        );
         soup.spill(cell);
-        assert_eq!((soup.strand_count(), soup.lipid_count(), soup.nucleotide_count()), (strands, lipids, nucleotides));
+        assert_eq!(
+            (
+                soup.strand_count(),
+                soup.lipid_count(),
+                soup.nucleotide_count()
+            ),
+            (strands, lipids, nucleotides)
+        );
         assert_eq!(soup.cell_stats().deaths, 1);
     }
 
@@ -1070,16 +1335,34 @@ mod tests {
             for _ in 0..4_000 {
                 soup.simulate_step();
                 assert!(soup.cells.len() <= MAX_CELLS);
-                assert!(soup.cells.iter().all(|c| c.strands.len() <= MAX_CELL_STRANDS && c.mitochondria <= MAX_MITOCHONDRIA));
-                assert!(soup.cells.iter().all(|c| c.lipids <= LIPID_CAP && c.nucleotides <= NUCLEOTIDE_CAP));
+                assert!(
+                    soup.cells
+                        .iter()
+                        .all(|c| c.strands.len() <= MAX_CELL_STRANDS
+                            && c.mitochondria <= MAX_MITOCHONDRIA)
+                );
+                assert!(
+                    soup.cells
+                        .iter()
+                        .all(|c| c.lipids <= LIPID_CAP && c.nucleotides <= NUCLEOTIDE_CAP)
+                );
                 let mut sizes = soup.colony_sizes();
                 sizes.retain(|_, n| *n > MAX_COLONY_SIZE);
                 assert!(sizes.is_empty());
-                assert!(soup.cells.iter().all(|c| (0.0..=600.0).contains(&c.x) && (0.0..=400.0).contains(&c.y)));
+                assert!(
+                    soup.cells
+                        .iter()
+                        .all(|c| (0.0..=600.0).contains(&c.x) && (0.0..=400.0).contains(&c.y))
+                );
                 assert!(soup.strand_count() <= MAX_STRANDS);
             }
             let st = soup.cell_stats().clone();
-            (soup.cells.len(), soup.molecules.len(), st, soup.history.samples().back().map(|s| s.cells))
+            (
+                soup.cells.len(),
+                soup.molecules.len(),
+                st,
+                soup.history.samples().back().map(|s| s.cells),
+            )
         };
         let a = run();
         assert_eq!(a, run());

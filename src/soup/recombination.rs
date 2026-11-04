@@ -23,7 +23,8 @@ impl PrimordialSoup {
         }
         let mut combinations = 0;
         for _ in 0..MAX_PAIR_ATTEMPTS {
-            if combinations >= MAX_COMBINATIONS_PER_STEP || self.molecules.len() >= MAX_AMINO_ACIDS {
+            if combinations >= MAX_COMBINATIONS_PER_STEP || self.molecules.len() >= MAX_AMINO_ACIDS
+            {
                 break;
             }
             let i = self.rng.random_range(0..snapshot_len);
@@ -32,7 +33,11 @@ impl PrimordialSoup {
                 continue;
             }
             let (a, b) = (&self.molecules[i], &self.molecules[j]);
-            if a.is_amino_acid() && b.is_amino_acid() && self.rng.random::<f64>() < COMBINATION_RATE && self.cross(i, j) {
+            if a.is_amino_acid()
+                && b.is_amino_acid()
+                && self.rng.random::<f64>() < COMBINATION_RATE
+                && self.cross(i, j)
+            {
                 combinations += 1;
             }
         }
@@ -44,8 +49,13 @@ impl PrimordialSoup {
         let (a, b) = (&self.molecules[i], &self.molecules[j]);
         // Chains that are empty cannot be crossed (never happens in a normal run);
         // skip them rather than add a duplicate of a parent.
-        let Some((mut child, cut)) = a.crossover(b, &mut self.rng) else { return false };
-        child.position = Position::new((a.position.x + b.position.x) / 2.0, (a.position.y + b.position.y) / 2.0);
+        let Some((mut child, cut)) = a.crossover(b, &mut self.rng) else {
+            return false;
+        };
+        child.position = Position::new(
+            (a.position.x + b.position.x) / 2.0,
+            (a.position.y + b.position.y) / 2.0,
+        );
         child.id = self.events.new_id();
         self.events.record(
             self.step,

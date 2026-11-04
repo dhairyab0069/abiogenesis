@@ -1,7 +1,7 @@
 //! Rows: one chain on screen, a line of tiles.
 
-use super::timing::{GROW_DELAY_PER_TILE, RECOMBINE_SECONDS, SHRINK_SECONDS};
 use super::tile::{EditKind, Motion, Origin, Tile};
+use super::timing::{GROW_DELAY_PER_TILE, RECOMBINE_SECONDS, SHRINK_SECONDS};
 use crate::events::{ChainId, Mutation};
 
 /// One chain on screen.
@@ -19,11 +19,17 @@ impl Row {
             .chars()
             .enumerate()
             .map(|(i, letter)| Tile {
-                motion: Motion::Growing { elapsed: -(i as f32) * GROW_DELAY_PER_TILE },
+                motion: Motion::Growing {
+                    elapsed: -(i as f32) * GROW_DELAY_PER_TILE,
+                },
                 ..Tile::settled(letter)
             })
             .collect();
-        Self { id, tiles, origin_left: 0.0 }
+        Self {
+            id,
+            tiles,
+            origin_left: 0.0,
+        }
     }
 
     /// A recombined row: all tiles present at once so the two colours are visible
@@ -33,16 +39,28 @@ impl Row {
             .chars()
             .enumerate()
             .map(|(i, letter)| Tile {
-                origin: if i < prefix_len { Origin::ParentA } else { Origin::ParentB },
+                origin: if i < prefix_len {
+                    Origin::ParentA
+                } else {
+                    Origin::ParentB
+                },
                 ..Tile::settled(letter)
             })
             .collect();
-        Self { id, tiles, origin_left: RECOMBINE_SECONDS }
+        Self {
+            id,
+            tiles,
+            origin_left: RECOMBINE_SECONDS,
+        }
     }
 
     /// The row's chain as it stands: tiles that are shrinking away do not count.
     pub fn sequence(&self) -> String {
-        self.tiles.iter().filter(|t| !t.is_shrinking()).map(|t| t.letter).collect()
+        self.tiles
+            .iter()
+            .filter(|t| !t.is_shrinking())
+            .map(|t| t.letter)
+            .collect()
     }
 
     /// How many tiles have started to appear.
@@ -70,7 +88,9 @@ impl Row {
         let editing = |kind| Motion::Editing { kind, elapsed: 0.0 };
         match mutation {
             Mutation::Substitution { index, from, to } => {
-                let Some(tile) = self.tiles.get_mut(index) else { return false };
+                let Some(tile) = self.tiles.get_mut(index) else {
+                    return false;
+                };
                 tile.previous = Some(from);
                 tile.letter = to;
                 tile.motion = editing(EditKind::Substitution);
@@ -79,11 +99,16 @@ impl Row {
                 if index > self.tiles.len() {
                     return false;
                 }
-                let tile = Tile { motion: editing(EditKind::Insertion), ..Tile::settled(residue) };
+                let tile = Tile {
+                    motion: editing(EditKind::Insertion),
+                    ..Tile::settled(residue)
+                };
                 self.tiles.insert(index, tile);
             }
             Mutation::Deletion { index, .. } => {
-                let Some(tile) = self.tiles.get_mut(index) else { return false };
+                let Some(tile) = self.tiles.get_mut(index) else {
+                    return false;
+                };
                 tile.motion = editing(EditKind::Deletion);
             }
         }

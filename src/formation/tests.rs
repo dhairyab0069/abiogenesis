@@ -18,7 +18,10 @@ fn the_default_gene_spells_mafkd() {
 #[test]
 fn a_strand_with_no_gene_is_refused() {
     assert!(Formation::with_gene("GGGCCC").is_none());
-    assert!(Formation::with_gene("CCAUGUAA").is_none(), "a lone M is not a protein");
+    assert!(
+        Formation::with_gene("CCAUGUAA").is_none(),
+        "a lone M is not a protein"
+    );
     let mut f = scene();
     assert!(!f.set_gene("CCCCC"));
     assert_eq!(f.gene(), DEFAULT_GENE);
@@ -54,7 +57,10 @@ fn beads_join_one_at_a_time() {
     let mut t = 0.0;
     while t < d {
         let s = f.snapshot_at(t);
-        assert!(s.joined >= last && s.joined - last < 1.0, "bonds form one at a time");
+        assert!(
+            s.joined >= last && s.joined - last < 1.0,
+            "bonds form one at a time"
+        );
         last = s.joined;
         t += 0.05;
     }
@@ -96,9 +102,15 @@ fn the_ribosome_scans_to_the_start_codon_then_reads_in_threes() {
     assert!((at_aug.ribosome_at - start).abs() < 0.01);
     assert_eq!(at_aug.codon.as_ref().map(|(c, _)| c.as_str()), Some("AUG"));
     let after_two = f.snapshot_at(t0 + start * SCAN_TIME + 2.0 * CODON_TIME + 0.01);
-    assert!((after_two.ribosome_at - (start + 6.0)).abs() < 0.1, "three bases per codon");
+    assert!(
+        (after_two.ribosome_at - (start + 6.0)).abs() < 0.1,
+        "three bases per codon"
+    );
     assert_eq!(after_two.amino_acids, 2);
-    assert_eq!(after_two.codon, Some(("UUC".to_string(), Codon::Amino('F'))));
+    assert_eq!(
+        after_two.codon,
+        Some(("UUC".to_string(), Codon::Amino('F')))
+    );
 }
 
 #[test]
@@ -113,7 +125,10 @@ fn amino_acids_never_decrease_and_end_at_the_protein_length() {
         last = s.amino_acids;
         if let Some((_, Codon::Stop)) = s.codon {
             seen_stop = true;
-            assert!(!s.released, "the chain is released only after the stop codon is read");
+            assert!(
+                !s.released,
+                "the chain is released only after the stop codon is read"
+            );
         }
         t += 0.02;
     }
@@ -165,7 +180,11 @@ fn dna_is_only_a_spelling() {
     f.dna = true;
     assert_eq!(f.shown(Phase::Assemble, 'U'), 'T');
     assert_eq!(f.shown(Phase::Unzip, 'U'), 'T');
-    assert_eq!(f.shown(Phase::Translate, 'U'), 'U', "the ribosome reads mRNA");
+    assert_eq!(
+        f.shown(Phase::Translate, 'U'),
+        'U',
+        "the ribosome reads mRNA"
+    );
     assert_eq!(f.shown(Phase::Pair, 'C'), 'C');
     assert_eq!(f.pair_of('A'), 'T');
     assert_eq!(f.pair_of('C'), 'G');
@@ -207,12 +226,19 @@ fn random_genes_always_have_a_protein_and_fit_in_a_strand() {
         assert!(f.protein().len() >= 3 && f.protein().starts_with('M'));
     }
     let a = random_gene(&mut StdRng::seed_from_u64(5));
-    assert_eq!(a, random_gene(&mut StdRng::seed_from_u64(5)), "the same seed gives the same gene");
+    assert_eq!(
+        a,
+        random_gene(&mut StdRng::seed_from_u64(5)),
+        "the same seed gives the same gene"
+    );
 }
 
 #[test]
 fn every_amino_acid_has_a_name() {
-    let names: std::collections::HashSet<_> = crate::model::AMINO_ACIDS.iter().map(|&c| amino_name(c)).collect();
+    let names: std::collections::HashSet<_> = crate::model::AMINO_ACIDS
+        .iter()
+        .map(|&c| amino_name(c))
+        .collect();
     assert_eq!(names.len(), crate::model::AMINO_ACIDS.len());
     assert!(!names.contains("?"));
 }

@@ -4,7 +4,8 @@ use rand::Rng;
 
 /// The 20 standard amino acids, by single-letter code.
 pub const AMINO_ACIDS: [char; 20] = [
-    'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V',
+    'A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y',
+    'V',
 ];
 
 pub fn random_amino_acid(rng: &mut impl Rng) -> char {

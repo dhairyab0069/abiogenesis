@@ -42,11 +42,11 @@ Abiogenesis is a toy model, written from a layperson's point of view, of the ste
 simple chemistry turning into things that copy and change. It is meant to be watched and played
 with, not to be a research-grade chemistry engine.
 
-It is built in six stages. Stages 1 to 5 explain how the process works and how its parts interact, in
-plain terms, from molecules in a pool up to cells and multicellular life. Stage 6 is a scenario lab:
-set up conditions, pick natural or forced selection, and watch how a population evolves over time.
+It is built in seven stages. Stages 1 to 6 explain how the process works and how its parts interact, in
+plain terms, from molecules in a pool up to cells, multicellular life and animals leaving the sea. Stage 7 is
+a scenario lab: set up conditions, pick natural or forced selection, and watch how a population evolves over time.
 
-**Where it is today:** stages 1 to 5 are done. Stage 6 is described in the [roadmap](#roadmap).
+**Where it is today:** stages 1 to 6 are done. Stage 7 is described in the [roadmap](#roadmap).
 
 ## Install
 
@@ -101,6 +101,7 @@ abiogenesis molecules    open the molecule simulation directly
 abiogenesis chains       open the chain build-up view directly
 abiogenesis formation    open the genes and proteins scene directly
 abiogenesis cells        open the cells and colonies demo directly
+abiogenesis animals      open the animals screen directly (sea to land, with the real story)
 abiogenesis --version
 ```
 
@@ -189,6 +190,24 @@ them, and lists the latest cell events. *Cells and Colonies* in the launcher is 
 started with a few ready-made cells and a speed slider (the slider is in the molecule simulation too).
 In the demo the first colony showed up within about 6,000 steps in all 8 seeds tried (under two minutes at normal speed, well under one at the demo's 3x); from an empty soup it takes a few minutes.
 
+**Animals: from sea to land (stage 6).** A small, honest simplification, not a biology textbook. The lineage
+starts from a colony like the ones in stage 5 (feeder cells hint at a gut, soma cells at a skin) and evolves under
+natural selection along a shoreline of four zones: open sea, shallows, tidal flats and land. A body is a radial or
+bilateral plan plus eleven organ levels (mouth and gut, nerve cord and brain, eyes, muscle, fins, backbone, gills,
+jaws, lungs, limbs, sealed skin). Organs build on the ones they come from (eyes need a nerve, jaws need gills and a
+skeleton, lungs bud off the gut, limbs grow out of bony fins), children are their parents with a few random changes,
+and fitness is a product of trade-offs: fins and gills win in water, a lung-like organ gives an edge in stale
+shallows, and limbs, a sealed skin and lungs win on land. Nothing steers the lineage toward land. The screen draws
+actual animals swimming, with organs fading in as they evolve, fins turning into limbs, a tide on the flats and the
+scene moving from sea to shallows to land, with a scrubber and play control. *Side by side:* the left is the
+simulated lineage, the right is the real-history story as nine short chapters (setting, problem, adaptation, result)
+that follow along as the simulation reaches matching milestones (symmetry and a gut, eyes and a nerve cord, a
+backbone, jaws, limb-like fins, lungs, leaving the water, first land animals), each saying what the simulation did
+the same or differently, including whether it came in the story's order. The chapters are written text, qualitative
+and labelled a story, not data. *What if?* changes the oxygen in the sea, how steep the shore is and how hard
+predators hunt, reruns the lineage and compares its organs and milestones with the default world; it is labelled
+hypothetical. Details in [docs/phase6_animals.md](docs/phase6_animals.md).
+
 **The chain build-up view.** Random amino acid chains appear one colored tile per residue, capped at 50.
 Chains mutate (a substitution flashes the changed tile, an insertion pops a new one in, a deletion shrinks
 one away) and recombine by crossover (the child briefly shows which part came from which parent). A legend
@@ -221,11 +240,14 @@ population stable while still letting patterns emerge.
 - [x] **Stage 5, cells to complex life.** Protocells that grow and divide, then eukaryotes (one cell
   swallows another, which becomes the mitochondrion, and the DNA gets its own envelope, the nucleus),
   then cells that stay together and specialize into multicellular life.
-- [ ] **Stage 6, scenario lab.** Build a scenario, choose natural or forced selection, and watch
+- [x] **Stage 6, animals: from sea to land.** Animals evolving from colonies, with body plans, specialised
+  organs and parts, and the move from sea to land, shown side by side with the real-history story, plus a
+  what-if world that prepares the scenario lab.
+- [ ] **Stage 7, scenario lab.** Build a scenario, choose natural or forced selection, and watch
   populations evolve over time. A small language model trained on protein sequences, written from
   scratch in Rust, supplies the learned fitness and mutation prior.
 
-Stages 2 to 5 stay deliberately simple. Their job is to show people how it works.
+Stages 2 to 6 stay deliberately simple. Their job is to show people how it works.
 
 ## Building from source
 
@@ -252,6 +274,8 @@ src/
     molecule_draw.rs  molecule size, colour and hover text
     cell_draw.rs    cells: lipid bilayer, nucleus, mitochondria, formation, pinch, cup, colonies
     cell_inspector.rs  the click-to-inspect close-up
+    animal_draw.rs  animals and the shoreline scene, organ portrait
+    animals_view.rs  animals screen: scrubber, side-by-side story, what-if window
     formation_view.rs  genes and proteins screen: draws a Formation snapshot
     sparkline.rs    painter-drawn line charts for the side panel
     chains_view.rs  chain build-up screen: stepping the soup, controls, rows
@@ -276,6 +300,13 @@ src/
     history.rs      the sampled history behind the charts
     cell.rs         stage 5: Cell, roles, and the pure rules (size, fitness, rates)
     cells.rs        stage 5 in the soup: forming, eating, dividing, swallowing, colonies
+  animals/    stage 6: the animal lineage (pure rules, tested)
+    traits.rs       body plan, eleven organ levels, ceilings, mutation, encoding
+    zone.rs         the four shore zones and the three what-if dials
+    fitness.rs      the six trade-offs behind fitness
+    run.rs          a whole run: individuals, generations, frames, summary, CSV
+    milestones.rs   milestones reached by the frontier, and their order against the story
+    story.rs        the real-history chapters (written text) and the per-run notes
   model/      atoms, molecules, amino acid chains
     atom.rs, position.rs  Atom and its elements, Position
     molecule.rs     Kind and Molecule: constructors and queries
@@ -283,12 +314,14 @@ src/
     genetic_code.rs the standard codon table, reading frames, translate
     sequence.rs     the amino acid alphabet and random sequences
   formation/  egui-free timeline of the genes and proteins scene (phases, snapshots, random genes)
+  animalviz/  egui-free geometry for the animal drawings (organs, fin to limb, the shore and tide)
   cellviz/    egui-free geometry and timelines for the cell drawings (bilayer, formation, pinch, cup)
   events.rs       the chain event log and protein lineage
   environment.rs  temperature, pH and wetness, optionally cycling
 docs/
   phase1_features.md   what stage 1 does, in detail
-Cargo.toml    dependencies (eframe, rand) and release profile
+  phase6_animals.md    what stage 6 does, in detail
+Cargo.toml    dependencies (eframe, rand), release profile and optimised dev dependencies
 ```
 
 ## Contributing

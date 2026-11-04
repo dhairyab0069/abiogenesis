@@ -21,7 +21,11 @@ pub struct Cycle {
 
 impl Cycle {
     pub fn new(period: f64, amplitude: f64) -> Self {
-        Self { period, amplitude, phase: 0.0 }
+        Self {
+            period,
+            amplitude,
+            phase: 0.0,
+        }
     }
 
     /// The offset from the base value at `step`, between `-amplitude` and `+amplitude`.
@@ -98,7 +102,12 @@ pub enum Preset {
 }
 
 impl Preset {
-    pub const ALL: [Preset; 4] = [Preset::Constant, Preset::DayNight, Preset::WetDry, Preset::Both];
+    pub const ALL: [Preset; 4] = [
+        Preset::Constant,
+        Preset::DayNight,
+        Preset::WetDry,
+        Preset::Both,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -117,11 +126,19 @@ impl Environment {
         let mut env = Self::constant(temperature, ph);
         if matches!(preset, Preset::DayNight | Preset::Both) {
             env.temperature_cycle = Some(Cycle::new(DAY_STEPS, 25.0));
-            env.ph_cycle = Some(Cycle { period: DAY_STEPS, amplitude: 0.6, phase: 0.5 });
+            env.ph_cycle = Some(Cycle {
+                period: DAY_STEPS,
+                amplitude: 0.6,
+                phase: 0.5,
+            });
         }
         if matches!(preset, Preset::WetDry | Preset::Both) {
             env.base_wetness = 0.55;
-            env.wetness_cycle = Some(Cycle { period: POOL_STEPS, amplitude: 0.5, phase: 0.25 });
+            env.wetness_cycle = Some(Cycle {
+                period: POOL_STEPS,
+                amplitude: 0.5,
+                phase: 0.25,
+            });
         }
         env
     }
@@ -142,7 +159,14 @@ mod tests {
     fn constant_environment_never_changes() {
         let env = Environment::constant(310.0, 6.5);
         let first = env.at(0);
-        assert_eq!(first, Conditions { temperature: 310.0, ph: 6.5, wetness: 1.0 });
+        assert_eq!(
+            first,
+            Conditions {
+                temperature: 310.0,
+                ph: 6.5,
+                wetness: 1.0
+            }
+        );
         assert!((0..1000).all(|t| env.at(t) == first));
     }
 
@@ -164,7 +188,11 @@ mod tests {
 
     #[test]
     fn phase_shifts_the_start() {
-        let c = Cycle { period: 100.0, amplitude: 5.0, phase: 0.25 };
+        let c = Cycle {
+            period: 100.0,
+            amplitude: 5.0,
+            phase: 0.25,
+        };
         assert!((c.offset(0) - 5.0).abs() < 1e-9);
     }
 
@@ -191,13 +219,19 @@ mod tests {
 
     #[test]
     fn constant_preset_matches_constant_environment() {
-        assert_eq!(Environment::preset(Preset::Constant, 310.0, 6.5), Environment::constant(310.0, 6.5));
+        assert_eq!(
+            Environment::preset(Preset::Constant, 310.0, 6.5),
+            Environment::constant(310.0, 6.5)
+        );
     }
 
     #[test]
     fn day_night_swings_temperature_and_ph_in_opposite_directions() {
         let env = Environment::preset(Preset::DayNight, 300.0, 7.0);
-        let (day, night) = (env.at((DAY_STEPS / 4.0) as u64), env.at((DAY_STEPS * 3.0 / 4.0) as u64));
+        let (day, night) = (
+            env.at((DAY_STEPS / 4.0) as u64),
+            env.at((DAY_STEPS * 3.0 / 4.0) as u64),
+        );
         assert!(day.temperature > 320.0 && night.temperature < 280.0);
         assert!(day.ph < 6.6 && night.ph > 7.4);
         assert_eq!(day.wetness, 1.0);
@@ -215,12 +249,19 @@ mod tests {
     #[test]
     fn both_combines_the_cycles() {
         let env = Environment::preset(Preset::Both, 300.0, 7.0);
-        assert!(env.temperature_cycle.is_some() && env.ph_cycle.is_some() && env.wetness_cycle.is_some());
+        assert!(
+            env.temperature_cycle.is_some()
+                && env.ph_cycle.is_some()
+                && env.wetness_cycle.is_some()
+        );
     }
 
     #[test]
     fn same_step_gives_same_conditions() {
-        let env = Environment { wetness_cycle: Some(Cycle::new(60.0, 0.5)), ..Environment::default() };
+        let env = Environment {
+            wetness_cycle: Some(Cycle::new(60.0, 0.5)),
+            ..Environment::default()
+        };
         assert_eq!(env.at(42), env.at(42));
     }
 }

@@ -28,12 +28,22 @@ impl Default for ChainsView {
         let soup = PrimordialSoup::new(800.0, 600.0, 300.0, 7.0);
         let mut view = ChainView::new();
         view.sync(&soup.events, live_chains(&soup));
-        Self { soup, view, running: true, last_tick: Instant::now(), pending: 0.0 }
+        Self {
+            soup,
+            view,
+            running: true,
+            last_tick: Instant::now(),
+            pending: 0.0,
+        }
     }
 }
 
 fn live_chains(soup: &PrimordialSoup) -> Vec<ChainId> {
-    soup.molecules.iter().filter(|m| m.is_amino_acid()).map(|m| m.id).collect()
+    soup.molecules
+        .iter()
+        .filter(|m| m.is_amino_acid())
+        .map(|m| m.id)
+        .collect()
 }
 
 impl ChainsView {
@@ -81,10 +91,16 @@ impl ChainsView {
                     next = Some(Screen::Menu);
                 }
                 ui.separator();
-                if ui.button(if self.running { "Pause" } else { "Resume" }).clicked() {
+                if ui
+                    .button(if self.running { "Pause" } else { "Resume" })
+                    .clicked()
+                {
                     self.running = !self.running;
                 }
-                if ui.add_enabled(!self.running, egui::Button::new("Step")).clicked() {
+                if ui
+                    .add_enabled(!self.running, egui::Button::new("Step"))
+                    .clicked()
+                {
                     self.step();
                 }
                 if ui.button("Reset").clicked() {
@@ -100,12 +116,16 @@ impl ChainsView {
     }
 
     fn rows_ui(&self, ui: &mut egui::Ui) {
-        egui::CentralPanel::default().frame(egui::Frame::new().fill(MENU_BG).inner_margin(16.0)).show(ui, |ui| {
-            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                for row in self.view.rows() {
-                    draw_row(ui, row);
-                }
+        egui::CentralPanel::default()
+            .frame(egui::Frame::new().fill(MENU_BG).inner_margin(16.0))
+            .show(ui, |ui| {
+                egui::ScrollArea::vertical()
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        for row in self.view.rows() {
+                            draw_row(ui, row);
+                        }
+                    });
             });
-        });
     }
 }

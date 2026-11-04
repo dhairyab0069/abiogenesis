@@ -39,11 +39,17 @@ pub(super) fn molecule_color(m: &Molecule) -> Color32 {
         return LIPID_COLOR;
     }
     if m.is_strand() {
-        return if m.is_catalyst() { CATALYST_COLOR } else { Color32::from_rgb(150, 170, 255) };
+        return if m.is_catalyst() {
+            CATALYST_COLOR
+        } else {
+            Color32::from_rgb(150, 170, 255)
+        };
     }
     match (m.sequence(), m.name().as_str()) {
         // Chains are coloured by length.
-        (Some(seq), _) => egui::ecolor::Hsva::new(((seq.len() * 20) % 360) as f32 / 360.0, 0.8, 1.0, 1.0).into(),
+        (Some(seq), _) => {
+            egui::ecolor::Hsva::new(((seq.len() * 20) % 360) as f32 / 360.0, 0.8, 1.0, 1.0).into()
+        }
         (None, "H2O") => Color32::from_rgb(0, 255, 255),
         (None, "CH4") => Color32::from_rgb(144, 238, 144),
         (None, "CH3OH") => Color32::from_rgb(128, 0, 128),
@@ -54,13 +60,19 @@ pub(super) fn molecule_color(m: &Molecule) -> Color32 {
 pub(super) fn tooltip_text(m: &Molecule) -> String {
     let mut s = String::new();
     match (m.sequence(), m.strand_sequence()) {
-        (Some(seq), _) => s += &format!("Amino Acid Chain\nSequence: {seq}\nLength: {}\n", seq.len()),
+        (Some(seq), _) => {
+            s += &format!("Amino Acid Chain\nSequence: {seq}\nLength: {}\n", seq.len())
+        }
         (_, Some(seq)) => {
             s += &format!("RNA Strand\nBases: {seq}\nLength: {}\n", seq.len());
             if let Some(gc) = m.gc_fraction() {
                 s += &format!("G and C: {:.0}%\n", gc * 100.0);
             }
-            s += if m.is_catalyst() { "Catalyst: yes, it copies itself faster\n" } else { "Catalyst: no\n" };
+            s += if m.is_catalyst() {
+                "Catalyst: yes, it copies itself faster\n"
+            } else {
+                "Catalyst: no\n"
+            };
             match translate(seq) {
                 Some(protein) => {
                     s += &format!(
@@ -73,11 +85,19 @@ pub(super) fn tooltip_text(m: &Molecule) -> String {
             }
         }
         _ if m.is_lipid() => s += "Lipid: a water-loving head, an oily tail\n",
-        _ if m.is_nucleotide() => s += &format!("Nucleotide: {} (a free RNA building block)\n", m.base().unwrap_or('?')),
+        _ if m.is_nucleotide() => {
+            s += &format!(
+                "Nucleotide: {} (a free RNA building block)\n",
+                m.base().unwrap_or('?')
+            )
+        }
         _ => s += &format!("Molecule: {}\n", m.name()),
     }
     s += &format!("Fitness: {:.2}\n", m.fitness());
-    s += &format!("Energy: {:.2}\nPosition: ({:.1}, {:.1})\n\nAtomic Composition:\n", m.energy, m.position.x, m.position.y);
+    s += &format!(
+        "Energy: {:.2}\nPosition: ({:.1}, {:.1})\n\nAtomic Composition:\n",
+        m.energy, m.position.x, m.position.y
+    );
     for (el, n) in m.composition() {
         s += &format!("  {el}: {n}\n");
     }
@@ -95,7 +115,10 @@ mod tests {
     fn a_strand_tooltip_shows_its_protein_or_says_it_has_none() {
         let gene = Molecule::strand("GCAUGGCUUUCAAAGAUUAACG".into());
         let text = tooltip_text(&gene);
-        assert!(text.contains("Protein: MAFKD") && text.contains("faster"), "{text}");
+        assert!(
+            text.contains("Protein: MAFKD") && text.contains("faster"),
+            "{text}"
+        );
         assert!(tooltip_text(&Molecule::strand("GGCCGG".into())).contains("Protein: none"));
         assert!(!tooltip_text(&Molecule::nucleotide('A')).contains("Protein"));
     }

@@ -145,7 +145,11 @@ impl History {
 impl PrimordialSoup {
     /// What the soup looks like right now.
     pub fn sample(&self) -> Sample {
-        let strands: Vec<&str> = self.molecules.iter().filter_map(Molecule::strand_sequence).collect();
+        let strands: Vec<&str> = self
+            .molecules
+            .iter()
+            .filter_map(Molecule::strand_sequence)
+            .collect();
         Sample {
             step: self.step,
             strands: strands.len(),
@@ -189,16 +193,30 @@ mod tests {
             soup.simulate_step();
         }
         let steps: Vec<u64> = soup.history.samples().iter().map(|s| s.step).collect();
-        assert_eq!(steps, vec![SAMPLE_EVERY, SAMPLE_EVERY * 2, SAMPLE_EVERY * 3]);
-        assert!(!History::is_due(0) && History::is_due(SAMPLE_EVERY) && !History::is_due(SAMPLE_EVERY + 1));
+        assert_eq!(
+            steps,
+            vec![SAMPLE_EVERY, SAMPLE_EVERY * 2, SAMPLE_EVERY * 3]
+        );
+        assert!(
+            !History::is_due(0)
+                && History::is_due(SAMPLE_EVERY)
+                && !History::is_due(SAMPLE_EVERY + 1)
+        );
     }
 
     #[test]
     fn a_sample_describes_the_strands() {
         let mut soup = PrimordialSoup::with_seed(300.0, 200.0, 300.0, 7.0, 2);
-        soup.molecules = vec![strand("GGUCAUAC", 10.0), strand("GGUCAUAC", 20.0), strand("AAAAAA", 30.0)];
+        soup.molecules = vec![
+            strand("GGUCAUAC", 10.0),
+            strand("GGUCAUAC", 20.0),
+            strand("AAAAAA", 30.0),
+        ];
         let s = soup.sample();
-        assert_eq!((s.strands, s.catalysts, s.diversity, s.protocells), (3, 2, 2, 0));
+        assert_eq!(
+            (s.strands, s.catalysts, s.diversity, s.protocells),
+            (3, 2, 2, 0)
+        );
         let mean = soup.molecules.iter().map(Molecule::fitness).sum::<f64>() / 3.0;
         assert!((s.mean_strand_fitness - mean).abs() < 1e-12);
         assert_eq!(s.temperature, 300.0);
@@ -209,21 +227,34 @@ mod tests {
         let mut h = History::default();
         assert!(h.is_empty());
         for step in 0..(MAX_SAMPLES as u64 + 25) {
-            h.push(Sample { step, ..Sample::default() });
+            h.push(Sample {
+                step,
+                ..Sample::default()
+            });
         }
         assert_eq!(h.len(), MAX_SAMPLES);
         assert_eq!(h.samples().front().map(|s| s.step), Some(25));
-        assert_eq!(h.samples().back().map(|s| s.step), Some(MAX_SAMPLES as u64 + 24));
+        assert_eq!(
+            h.samples().back().map(|s| s.step),
+            Some(MAX_SAMPLES as u64 + 24)
+        );
     }
 
     #[test]
     fn series_pick_one_metric() {
         let mut h = History::default();
         for k in 0..4 {
-            h.push(Sample { strands: k, temperature: 300.0 + k as f64, ..Sample::default() });
+            h.push(Sample {
+                strands: k,
+                temperature: 300.0 + k as f64,
+                ..Sample::default()
+            });
         }
         assert_eq!(h.series(Metric::Strands), vec![0.0, 1.0, 2.0, 3.0]);
-        assert_eq!(h.series(Metric::Temperature), vec![300.0, 301.0, 302.0, 303.0]);
+        assert_eq!(
+            h.series(Metric::Temperature),
+            vec![300.0, 301.0, 302.0, 303.0]
+        );
         for m in Metric::ALL {
             assert_eq!(h.series(m).len(), 4);
             assert!(!m.label().is_empty());

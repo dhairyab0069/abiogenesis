@@ -20,7 +20,10 @@ impl PrimordialSoup {
     }
 
     pub(super) fn random_position(&mut self) -> Position {
-        Position::new(self.rng.random::<f64>() * self.width, self.rng.random::<f64>() * self.height)
+        Position::new(
+            self.rng.random::<f64>() * self.width,
+            self.rng.random::<f64>() * self.height,
+        )
     }
 
     /// Adds a new random chain and logs it as generated. The one place chains
@@ -31,7 +34,10 @@ impl PrimordialSoup {
         chain.id = self.events.new_id();
         self.events.record(
             self.step,
-            ChainEvent::Generated { id: chain.id, sequence: chain.sequence().unwrap_or("").to_string() },
+            ChainEvent::Generated {
+                id: chain.id,
+                sequence: chain.sequence().unwrap_or("").to_string(),
+            },
         );
         self.molecules.push(chain);
     }

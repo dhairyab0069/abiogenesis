@@ -79,7 +79,10 @@ pub fn ease(t: f32) -> f32 {
 
 /// A fixed pseudo-random number in 0..1 from two integers.
 pub fn hash01(seed: u64, k: u64) -> f32 {
-    let mut z = seed.wrapping_mul(0x9E37_79B9_7F4A_7C15).wrapping_add(k.wrapping_mul(0xBF58_476D_1CE4_E5B9)).wrapping_add(0x94D0_49BB_1331_11EB);
+    let mut z = seed
+        .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+        .wrapping_add(k.wrapping_mul(0xBF58_476D_1CE4_E5B9))
+        .wrapping_add(0x94D0_49BB_1331_11EB);
     z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
     z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
     z ^= z >> 31;
@@ -132,30 +135,57 @@ pub fn bilayer_spec(radius: f32) -> Bilayer {
     let head_radius = (radius * 0.055).max(1.4);
     let tail_len = head_radius * 1.6;
     let half = tail_len + 2.0 * head_radius;
-    Bilayer { head_radius, tail_len, mid: radius - half, inner_edge: radius - 2.0 * half }
+    Bilayer {
+        head_radius,
+        tail_len,
+        mid: radius - half,
+        inner_edge: radius - 2.0 * half,
+    }
 }
 
 fn leaflet_count(ring_radius: f32, head_radius: f32) -> usize {
-    let n = (TAU * ring_radius / (2.0 * head_radius * 1.15)).round().max(0.0) as usize;
+    let n = (TAU * ring_radius / (2.0 * head_radius * 1.15))
+        .round()
+        .max(0.0) as usize;
     n.clamp(MIN_PER_LEAFLET, MAX_PER_LEAFLET)
 }
 
 /// How many glyphs the two leaflets have for a cell of `radius`.
 pub fn glyph_total(radius: f32) -> usize {
     let s = bilayer_spec(radius);
-    leaflet_count(s.mid + s.tail_len + s.head_radius, s.head_radius) + leaflet_count(s.mid - s.tail_len - s.head_radius, s.head_radius)
+    leaflet_count(s.mid + s.tail_len + s.head_radius, s.head_radius)
+        + leaflet_count(s.mid - s.tail_len - s.head_radius, s.head_radius)
 }
 
 fn make_glyph(s: &Bilayer, leaflet: Leaflet, angle: f32) -> Glyph {
     let dir = Pt::polar(angle, 1.0);
     let tangent = Pt::new(-dir.y, dir.x);
     let (head_r, start_r, end_r) = match leaflet {
-        Leaflet::Outer => (s.mid + s.tail_len + s.head_radius, s.mid + s.tail_len + s.head_radius * 0.2, s.mid + s.head_radius * 0.1),
-        Leaflet::Inner => (s.mid - s.tail_len - s.head_radius, s.mid - s.tail_len - s.head_radius * 0.2, s.mid - s.head_radius * 0.1),
+        Leaflet::Outer => (
+            s.mid + s.tail_len + s.head_radius,
+            s.mid + s.tail_len + s.head_radius * 0.2,
+            s.mid + s.head_radius * 0.1,
+        ),
+        Leaflet::Inner => (
+            s.mid - s.tail_len - s.head_radius,
+            s.mid - s.tail_len - s.head_radius * 0.2,
+            s.mid - s.head_radius * 0.1,
+        ),
     };
     let side = s.head_radius * 0.55;
-    let tail = |k: f32| (dir * start_r + tangent * (side * k), dir * end_r + tangent * (side * k));
-    Glyph { leaflet, angle, head: dir * head_r, head_radius: s.head_radius, tails: [tail(-1.0), tail(1.0)] }
+    let tail = |k: f32| {
+        (
+            dir * start_r + tangent * (side * k),
+            dir * end_r + tangent * (side * k),
+        )
+    };
+    Glyph {
+        leaflet,
+        angle,
+        head: dir * head_r,
+        head_radius: s.head_radius,
+        tails: [tail(-1.0), tail(1.0)],
+    }
 }
 
 /// All the glyphs of a membrane: the outer leaflet first, then the inner one
@@ -164,8 +194,12 @@ pub fn bilayer(radius: f32) -> Vec<Glyph> {
     let s = bilayer_spec(radius);
     let outer = leaflet_count(s.mid + s.tail_len + s.head_radius, s.head_radius);
     let inner = leaflet_count(s.mid - s.tail_len - s.head_radius, s.head_radius);
-    let mut glyphs: Vec<Glyph> = (0..outer).map(|i| make_glyph(&s, Leaflet::Outer, i as f32 / outer as f32 * TAU)).collect();
-    glyphs.extend((0..inner).map(|i| make_glyph(&s, Leaflet::Inner, (i as f32 + 0.5) / inner as f32 * TAU)));
+    let mut glyphs: Vec<Glyph> = (0..outer)
+        .map(|i| make_glyph(&s, Leaflet::Outer, i as f32 / outer as f32 * TAU))
+        .collect();
+    glyphs.extend(
+        (0..inner).map(|i| make_glyph(&s, Leaflet::Inner, (i as f32 + 0.5) / inner as f32 * TAU)),
+    );
     glyphs
 }
 
@@ -184,13 +218,22 @@ pub enum Detail {
 /// Glyphs when the cell is big enough on screen and the frame's glyph budget
 /// has room for it, else a smooth double line.
 pub fn detail(radius_px: f32, budget_left: usize) -> Detail {
-    if radius_px >= GLYPH_LOD_RADIUS && glyph_total(radius_px) <= budget_left { Detail::Glyphs } else { Detail::Smooth }
+    if radius_px >= GLYPH_LOD_RADIUS && glyph_total(radius_px) <= budget_left {
+        Detail::Glyphs
+    } else {
+        Detail::Smooth
+    }
 }
 
 /// Points around a circle, split into runs wherever `skip` says a point is hidden
 /// (inside a neighbour's cytoplasm, for instance). With nothing hidden the single
 /// run is closed (first point equals last).
-pub fn membrane_runs(centre: Pt, radius: f32, samples: usize, skip: impl Fn(Pt) -> bool) -> Vec<Vec<Pt>> {
+pub fn membrane_runs(
+    centre: Pt,
+    radius: f32,
+    samples: usize,
+    skip: impl Fn(Pt) -> bool,
+) -> Vec<Vec<Pt>> {
     let mut runs: Vec<Vec<Pt>> = Vec::new();
     let mut open = false;
     for k in 0..=samples {
@@ -228,7 +271,9 @@ pub const FORMATION_STEPS: f32 = 150.0;
 
 /// How far through its formation a cell of this age is, or `None` once it is a finished cell.
 pub fn formation_progress(age_steps: f32) -> Option<f32> {
-    (0.0..FORMATION_STEPS).contains(&age_steps).then(|| age_steps / FORMATION_STEPS)
+    (0.0..FORMATION_STEPS)
+        .contains(&age_steps)
+        .then(|| age_steps / FORMATION_STEPS)
 }
 
 /// When glyph `i` of `n` reaches its place on the ring: the ring fills in order.
@@ -284,7 +329,9 @@ pub fn outer_pose(i: usize, n: usize, start: Pt, seed: u64, target: &Glyph, t: f
 pub const PINCH_STEPS: f32 = 100.0;
 
 pub fn pinch_progress(age_steps: f32) -> Option<f32> {
-    (0.0..PINCH_STEPS).contains(&age_steps).then(|| age_steps / PINCH_STEPS)
+    (0.0..PINCH_STEPS)
+        .contains(&age_steps)
+        .then(|| age_steps / PINCH_STEPS)
 }
 
 /// Where the two halves are at pinch progress `t`: both start at the midpoint
@@ -332,7 +379,13 @@ pub struct Cup {
 
 /// The engulfing at `age` steps: `guest` and `guest_radius` are where and how big
 /// the swallowed cell was; `slot` and `mito_radius` are where its mitochondrion ends up.
-pub fn cup(age_steps: f32, guest: Pt, guest_radius: f32, slot: Pt, mito_radius: f32) -> Option<Cup> {
+pub fn cup(
+    age_steps: f32,
+    guest: Pt,
+    guest_radius: f32,
+    slot: Pt,
+    mito_radius: f32,
+) -> Option<Cup> {
     if !(0.0..ENGULF_STEPS).contains(&age_steps) {
         return None;
     }
@@ -362,7 +415,10 @@ pub fn nucleus_radius(radius: f32) -> f32 {
 pub fn mito_slot(i: u32, radius: f32) -> (Pt, f32) {
     let inner = bilayer_spec(radius).inner_edge;
     let nucleus = nucleus_radius(radius);
-    (Pt::polar(0.9 + i as f32 * 2.1, (inner + nucleus) / 2.0), (inner - nucleus).max(0.0) * 0.45)
+    (
+        Pt::polar(0.9 + i as f32 * 2.1, (inner + nucleus) / 2.0),
+        (inner - nucleus).max(0.0) * 0.45,
+    )
 }
 
 #[cfg(test)]
