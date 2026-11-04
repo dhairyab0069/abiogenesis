@@ -2,15 +2,19 @@
 //!
 //! Design choices:
 //! - **A grid decides where.** The soup is cut into square grid cells; a cell
-//!   with enough chains in it, while the pool is dry, becomes a protocell. That
-//!   is a simple stand-in for "stuff gets concentrated, then a boundary forms".
+//!   with enough chains or strands in it, while the pool is dry, becomes a
+//!   protocell. That is a simple stand-in for "stuff gets concentrated, then a
+//!   boundary forms". A lipid in the cell lowers the bar (two contents are
+//!   enough) and makes the droplet a little bigger: lipids are what membranes
+//!   are made of.
 //! - **A protocell is just a circle.** It has no inside state of its own: the
 //!   chains inside it are simply the chains whose position is inside the circle.
 //!   That keeps it correct when chains mutate (a child replaces its parent) or
 //!   new ones are added, with no member list to keep in sync.
-//! - **Why they matter.** Chains cannot leave a protocell, they mutate faster
-//!   there and they recombine with each other more often. That is the point of
-//!   the stage: whoever is inside a droplet gets to experiment more.
+//! - **Why they matter.** Everything inside a protocell stays inside. Chains
+//!   mutate faster there and recombine with each other more often, and strands
+//!   fall apart more slowly and copy themselves faster (see `chemistry`). That
+//!   is the point of the stage: whoever is inside a droplet does better.
 //! - **They sit in the pool.** Only chains below the water line can crowd into a
 //!   droplet, and a droplet sinks with the water line as the pool dries, carrying
 //!   its chains along.
@@ -32,6 +36,8 @@ const CROWD: usize = 3;
 const FORM_BELOW_WETNESS: f64 = 0.45;
 /// Protocells burst when the pool is wetter than this.
 const BURST_ABOVE_WETNESS: f64 = 0.85;
+/// Each lipid in the cell (up to 4) makes the droplet this much wider.
+const LIPID_GROWTH: f64 = 3.0;
 const MAX_PROTOCELLS: usize = 6;
 /// How fast (per step) a droplet sinks with the water line.
 const SETTLE_SPEED: f64 = 3.0;
@@ -89,6 +95,14 @@ impl PrimordialSoup {
             .collect()
     }
 
+    /// Chains and strands inside `protocell`: what makes it worth keeping.
+    fn occupants(&self, protocell: &Protocell) -> usize {
+        self.molecules
+            .iter()
+            .filter(|m| (m.is_amino_acid() || m.is_strand()) && protocell.contains(m.position.x, m.position.y))
+            .count()
+    }
+
     /// Chains that are inside any protocell.
     pub fn chains_in_protocells(&self) -> usize {
         self.molecules
@@ -108,7 +122,7 @@ impl PrimordialSoup {
         self.settle_protocells();
         let before = self.protocells.len();
         let alive: Vec<Protocell> =
-            self.protocells.iter().filter(|p| self.members_of(p).len() >= 2).cloned().collect();
+            self.protocells.iter().filter(|p| self.occupants(p) >= 2).cloned().collect();
         self.protocells_burst += (before - alive.len()) as u64;
         self.protocells = alive;
         if self.wetness < FORM_BELOW_WETNESS {
@@ -134,17 +148,18 @@ impl PrimordialSoup {
 
     fn form_protocells(&mut self) {
         let line = self.water_line();
-        // Group the free chains by grid cell. A BTreeMap keeps the order fixed,
-        // so a seeded run always forms the same droplets.
-        let mut grid: BTreeMap<(i64, i64), Vec<usize>> = BTreeMap::new();
+        // Group the free chains and strands (and count the lipids) by grid cell.
+        // A BTreeMap keeps the order fixed, so a seeded run forms the same droplets.
+        let mut grid: BTreeMap<(i64, i64), (Vec<usize>, usize)> = BTreeMap::new();
         for (i, m) in self.molecules.iter().enumerate() {
             let free = !self.protocells.iter().any(|p| p.contains(m.position.x, m.position.y));
-            if m.is_amino_acid() && m.position.y >= line && free {
+            if (m.is_amino_acid() || m.is_strand() || m.is_lipid()) && m.position.y >= line && free {
                 let cell = ((m.position.x / GRID_CELL).floor() as i64, (m.position.y / GRID_CELL).floor() as i64);
-                grid.entry(cell).or_default().push(i);
+                let entry = grid.entry(cell).or_default();
+                if m.is_lipid() { entry.1 += 1 } else { entry.0.push(i) }
             }
         }
-        for chains in grid.values().filter(|c| c.len() >= CROWD) {
+        for (chains, lipids) in grid.values().filter(|(c, l)| c.len() >= CROWD || (c.len() >= 2 && *l >= 1)) {
             if self.protocells.len() >= MAX_PROTOCELLS {
                 break;
             }
@@ -152,13 +167,14 @@ impl PrimordialSoup {
             let x = chains.iter().map(|&i| self.molecules[i].position.x).sum::<f64>() / n;
             let y = chains.iter().map(|&i| self.molecules[i].position.y).sum::<f64>() / n;
             // Droplets do not overlap: skip a crowd that sits next to one already formed.
-            if self.protocells.iter().any(|p| (p.x - x).hypot(p.y - y) < p.radius + RADIUS) {
+            let radius = RADIUS + LIPID_GROWTH * (*lipids).min(4) as f64;
+            if self.protocells.iter().any(|p| (p.x - x).hypot(p.y - y) < p.radius + radius) {
                 continue;
             }
             let id = self.next_protocell_id;
             self.next_protocell_id += 1;
             self.protocells_formed += 1;
-            self.protocells.push(Protocell { id, x, y, radius: RADIUS, born_step: self.step });
+            self.protocells.push(Protocell { id, x, y, radius, born_step: self.step });
         }
     }
 
@@ -321,6 +337,53 @@ mod tests {
             soup.simulate_step();
         }
         assert!((soup.temperature - 270.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn a_lipid_lets_two_chains_form_a_wider_droplet() {
+        // 50 water molecules keep the soup at its cap, so the two chains do not recombine into a crowd.
+        let two = || {
+            let mut m = vec![chain_at(200.0, 280.0), chain_at(205.0, 282.0)];
+            m.extend((0..50).map(|k| {
+                let mut w = Molecule::water();
+                w.position = Position::new(k as f64 * 8.0, 295.0);
+                w
+            }));
+            m
+        };
+        let mut bare = soup_with(two());
+        bare.set_environment(dry());
+        bare.simulate_step();
+        assert!(bare.protocells.is_empty(), "two chains alone are not a crowd");
+
+        let mut with_lipid = two();
+        with_lipid.push({
+            let mut l = Molecule::lipid();
+            l.position = Position::new(203.0, 283.0);
+            l
+        });
+        let mut soup = soup_with(with_lipid);
+        soup.set_environment(dry());
+        soup.simulate_step();
+        assert_eq!(soup.protocells.len(), 1);
+        assert!(soup.protocells[0].radius > RADIUS);
+    }
+
+    #[test]
+    fn strands_count_toward_a_crowd_and_keep_a_droplet_alive() {
+        let mut strands = Vec::new();
+        for (x, y) in [(200.0, 280.0), (205.0, 282.0), (198.0, 284.0)] {
+            let mut s = Molecule::strand("GAUCAUGC".into());
+            s.position = Position::new(x, y);
+            strands.push(s);
+        }
+        let mut soup = soup_with(strands);
+        soup.set_environment(dry());
+        for _ in 0..5 {
+            soup.simulate_step();
+        }
+        assert_eq!(soup.protocells.len(), 1);
+        assert_eq!(soup.protocells_burst(), 0);
     }
 
     #[test]

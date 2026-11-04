@@ -46,7 +46,7 @@ It is built in six stages. Stages 1 to 5 explain how the process works and how i
 plain terms, from molecules in a pool up to cells and multicellular life. Stage 6 is a scenario lab:
 set up conditions, pick natural or forced selection, and watch how a population evolves over time.
 
-**Where it is today:** stages 1 and 2 are done. Stages 3 to 6 are described in the
+**Where it is today:** stages 1 to 3 are done. Stages 4 to 6 are described in the
 [roadmap](#roadmap).
 
 ## Install
@@ -116,6 +116,20 @@ what is left, and chains crowd together. Where three or more share a grid cell, 
 droplet that keeps its chains in, where they mutate twice as fast and cross over with each other. When
 the pool refills, the droplets burst.
 
+**The chemistry (stage 3).** The soup now also holds lipids and free nucleotides (the four RNA letters
+A, C, G and U). Two nucleotides that meet join into an RNA-like *strand*, and a strand picks up more as
+they drift by, up to 24 long; drying makes bonding more likely and wetness makes strands fall apart
+faster. A strand copies itself when enough free nucleotides are within reach: the copy is its
+complement (A pairs with U, C with G) with the odd wrong base, and it uses up the building blocks, so
+strands compete for them. Every molecule has a **fitness** from 0 to 1 (shown in its tooltip): for a
+strand it is how balanced its G and C are (strong enough to last, loose enough to copy), how long it
+is, plus a bonus for carrying the catalytic motif `GGU`, which makes it a *catalyst* that copies
+itself 4 times as fast. Fit strands last longer, so over time the soup fills with strands that are
+better at surviving and copying. Lipids cling together, and where they are present a droplet forms with
+fewer chains and grows wider. Inside a droplet a strand falls apart half as fast and copies itself
+twice as fast. The side panel shows nucleotides, strands, catalysts, the longest strand, the mean
+strand fitness and how many strands were copied and lost.
+
 **The chain build-up view.** Random amino acid chains appear one colored tile per residue, capped at 50.
 Chains mutate (a substitution flashes the changed tile, an insertion pops a new one in, a deletion shrinks
 one away) and recombine by crossover (the child briefly shows which part came from which parent). A legend
@@ -141,7 +155,7 @@ population stable while still letting patterns emerge.
   chain generation, mutation and recombination, pattern tracking, interactive tooltips, launcher.
 - [x] **Stage 2, environment.** Temperature, pH and wetness that cycle over time (wet/dry pools,
   day and night), user controls, then a grid environment and protocells.
-- [ ] **Stage 3, chemistry and emergence.** Lipids and nucleotides, polymerization rules,
+- [x] **Stage 3, chemistry and emergence.** Lipids and nucleotides, polymerization rules,
   autocatalysis, self-replication, and a fitness for each molecule.
 - [ ] **Stage 4, visualization and metrics.** Live charts for molecular diversity, complexity,
   replicators and the environment, plus a clearer view of chain generation and lineage.
