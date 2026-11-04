@@ -102,7 +102,7 @@ fn parents_are_created_before_their_children() {
         match stamped.event {
             ChainEvent::Mutated { .. } => mutated += 1,
             ChainEvent::Recombined { .. } => recombined += 1,
-            ChainEvent::Generated { .. } => {}
+            ChainEvent::Generated { .. } | ChainEvent::Translated { .. } => {}
         }
         for parent in stamped.event.parents() {
             assert!(
@@ -141,7 +141,7 @@ fn recorded_edits_explain_the_children() {
                 let expected = format!("{}{}", &seq_of(parents.0)[..cut.0], &seq_of(parents.1)[cut.1..]);
                 assert_eq!(&expected, sequence);
             }
-            ChainEvent::Generated { .. } => {}
+            ChainEvent::Generated { .. } | ChainEvent::Translated { .. } => {}
         }
     }
     assert!(sub > 0 && ins > 0 && del > 0, "saw sub {sub}, ins {ins}, del {del}");

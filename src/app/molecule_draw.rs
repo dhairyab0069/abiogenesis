@@ -1,6 +1,7 @@
 //! How a molecule looks in the soup: size, colour and hover text.
 
-use crate::model::Molecule;
+use crate::model::{Molecule, protein_fitness, translate};
+use crate::soup::gene_boost;
 use eframe::egui::{self, Color32};
 
 const BASE_MOLECULE_SIZE: f32 = 6.0;
@@ -60,6 +61,16 @@ pub(super) fn tooltip_text(m: &Molecule) -> String {
                 s += &format!("G and C: {:.0}%\n", gc * 100.0);
             }
             s += if m.is_catalyst() { "Catalyst: yes, it copies itself faster\n" } else { "Catalyst: no\n" };
+            match translate(seq) {
+                Some(protein) => {
+                    s += &format!(
+                        "Protein: {protein} (fitness {:.2}), copies {:.2}x faster\n",
+                        protein_fitness(&protein),
+                        gene_boost(seq)
+                    );
+                }
+                None => s += "Protein: none (no gene)\n",
+            }
         }
         _ if m.is_lipid() => s += "Lipid: a water-loving head, an oily tail\n",
         _ if m.is_nucleotide() => s += &format!("Nucleotide: {} (a free RNA building block)\n", m.base().unwrap_or('?')),
@@ -74,4 +85,18 @@ pub(super) fn tooltip_text(m: &Molecule) -> String {
         s += &format!("\nStructure:\n  {structure}\n");
     }
     s.trim_end().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_strand_tooltip_shows_its_protein_or_says_it_has_none() {
+        let gene = Molecule::strand("GCAUGGCUUUCAAAGAUUAACG".into());
+        let text = tooltip_text(&gene);
+        assert!(text.contains("Protein: MAFKD") && text.contains("faster"), "{text}");
+        assert!(tooltip_text(&Molecule::strand("GGCCGG".into())).contains("Protein: none"));
+        assert!(!tooltip_text(&Molecule::nucleotide('A')).contains("Protein"));
+    }
 }
