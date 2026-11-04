@@ -4,5 +4,6 @@ pub mod app;
 pub mod chain_view;
 pub mod environment;
 pub mod events;
+pub mod formation;
 pub mod model;
 pub mod soup;
