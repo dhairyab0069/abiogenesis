@@ -54,9 +54,10 @@ const LIPID_PULL: f64 = 0.03;
 const LIPID_REACH: f64 = 90.0;
 
 /// Chance per step that a template that can copy itself does. Catalysts are
-/// faster, and so is anything inside a protocell.
+/// faster, so are strands whose protein is fit (the gene boost), and so is
+/// anything inside a protocell.
 pub(super) fn replication_rate(sequence: &str, sheltered: bool) -> f64 {
-    let mut rate = REPLICATION_RATE;
+    let mut rate = REPLICATION_RATE * super::protein::gene_boost(sequence);
     if sequence.contains(MOTIF) {
         rate *= CATALYST_BOOST;
     }
@@ -154,7 +155,7 @@ impl PrimordialSoup {
         self.strands_decayed
     }
 
-    fn sheltered(&self, p: &Position) -> bool {
+    pub(super) fn sheltered(&self, p: &Position) -> bool {
         self.protocells.iter().any(|c| c.contains(p.x, p.y))
     }
 
@@ -172,6 +173,7 @@ impl PrimordialSoup {
         }
         self.polymerize();
         self.replicate();
+        self.express_genes();
         self.decay();
         self.gather_lipids();
     }

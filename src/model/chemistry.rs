@@ -43,6 +43,11 @@ pub fn complement_strand(sequence: &str) -> String {
     sequence.chars().map(complement).collect()
 }
 
+/// How fit a protein is, from 0 to 1: the fitness of a chain with these residues.
+pub fn protein_fitness(protein: &str) -> f64 {
+    Molecule::amino_acid(protein.to_string(), 1.0).fitness()
+}
+
 /// 1 when `x` is exactly half, falling to 0 at either extreme.
 fn balance(x: f64) -> f64 {
     1.0 - (x - 0.5).abs() * 2.0

@@ -5,8 +5,10 @@
 mod census;
 mod chemistry;
 mod generation;
+mod history;
 mod movement;
 mod mutation;
+mod protein;
 mod protocell;
 mod recombination;
 #[cfg(test)]
@@ -17,6 +19,8 @@ use crate::events::EventLog;
 use crate::model::{Molecule, Position};
 use rand::{SeedableRng, rngs::StdRng};
 
+pub use history::{History, Metric, Sample};
+pub use protein::gene_boost;
 pub use protocell::Protocell;
 
 /// Population cap for chains (generation) and for the whole soup (recombination).
@@ -43,6 +47,8 @@ pub struct PrimordialSoup {
     /// Steps simulated so far. Seed chains are logged at step 0; events during
     /// the n-th `simulate_step` are logged at step n.
     pub step: u64,
+    /// Sampled numbers over time, for the charts.
+    pub history: History,
     width: f64,
     height: f64,
     total_reactions: u64,
@@ -56,6 +62,7 @@ pub struct PrimordialSoup {
     strands_formed: u64,
     strand_copies: u64,
     strands_decayed: u64,
+    proteins_made: u64,
     rng: StdRng,
 }
 
@@ -78,6 +85,7 @@ impl PrimordialSoup {
             protocells: Vec::new(),
             events: EventLog::new(),
             step: 0,
+            history: History::default(),
             width,
             height,
             total_reactions: 0,
@@ -89,6 +97,7 @@ impl PrimordialSoup {
             strands_formed: 0,
             strand_copies: 0,
             strands_decayed: 0,
+            proteins_made: 0,
             rng,
         };
         for _ in 0..generation::INITIAL_AMINO_ACIDS {
@@ -145,6 +154,7 @@ impl PrimordialSoup {
         self.step_chemistry();
         self.drift();
         self.update_protocells();
+        self.record_history();
         self.target_matches()
     }
 

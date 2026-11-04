@@ -60,6 +60,16 @@ impl ChainEvent {
         }
     }
 
+    /// A one-word description of how the chain came to be.
+    pub fn how(&self) -> &'static str {
+        match self {
+            Self::Generated { .. } => "generated",
+            Self::Mutated { .. } => "mutated",
+            Self::Recombined { .. } => "recombined",
+            Self::Translated { .. } => "translated",
+        }
+    }
+
     /// The chains this one came from: none, one or two.
     pub fn parents(&self) -> Vec<ChainId> {
         match self {
@@ -68,6 +78,18 @@ impl ChainEvent {
             Self::Recombined { parents, .. } => vec![parents.0, parents.1],
         }
     }
+}
+
+/// One line of a lineage tree.
+#[derive(Clone, Debug, PartialEq)]
+pub struct LineageRow {
+    pub id: ChainId,
+    /// 0 for the root, 1 for its children, and so on.
+    pub depth: usize,
+    pub step: u64,
+    /// How it came to be: "translated", "mutated" or "recombined".
+    pub how: &'static str,
+    pub sequence: String,
 }
 
 /// An event and the step it happened on.
@@ -128,6 +150,43 @@ impl EventLog {
     /// The event that created chain `id`, if it was recorded.
     pub fn creation_of(&self, id: ChainId) -> Option<&Stamped> {
         self.events.iter().find(|s| s.event.id() == id)
+    }
+
+    /// The chains that came from `root`, as a tree in reading order (each parent
+    /// before its children), at most `max_rows` rows, `root` first. A chain with two
+    /// parents appears under the first one that reaches it.
+    pub fn lineage(&self, root: ChainId, max_rows: usize) -> Vec<LineageRow> {
+        let mut children: std::collections::HashMap<ChainId, Vec<&Stamped>> = std::collections::HashMap::new();
+        for s in &self.events {
+            for p in s.event.parents() {
+                children.entry(p).or_default().push(s);
+            }
+        }
+        let mut rows = Vec::new();
+        let mut seen = vec![root];
+        let mut stack: Vec<(ChainId, usize)> = vec![(root, 0)];
+        while let Some((id, depth)) = stack.pop() {
+            if rows.len() >= max_rows {
+                break;
+            }
+            let Some(created) = self.creation_of(id) else { continue };
+            rows.push(LineageRow { id, depth, step: created.step, how: created.event.how(), sequence: created.event.sequence().to_string() });
+            let kids = children.get(&id).map(Vec::as_slice).unwrap_or(&[]);
+            for kid in kids.iter().rev() {
+                let kid_id = kid.event.id();
+                if !seen.contains(&kid_id) {
+                    seen.push(kid_id);
+                    stack.push((kid_id, depth + 1));
+                }
+            }
+        }
+        rows
+    }
+
+    /// The protein chains that were read off a strand, with the step they appeared,
+    /// oldest first: the roots of the protein lineages.
+    pub fn translated_roots(&self) -> Vec<(ChainId, u64)> {
+        self.events.iter().filter(|s| matches!(s.event, ChainEvent::Translated { .. })).map(|s| (s.event.id(), s.step)).collect()
     }
 
     /// The chain's ancestors, nearest first, each listed once.
@@ -228,5 +287,23 @@ mod tests {
         let ancestors = log.ancestors(z);
         assert_eq!(ancestors.iter().filter(|&&a| a == root).count(), 1);
         assert_eq!(ancestors.len(), 3);
+    }
+
+    #[test]
+    fn a_lineage_lists_the_descendants_of_a_translated_protein() {
+        let mut log = EventLog::new();
+        let root = log.new_id();
+        log.record(5, ChainEvent::Translated { id: root, gene: "AUGGCUUAA".into(), sequence: "MA".into() });
+        let (child, grand, other) = (log.new_id(), log.new_id(), log.new_id());
+        let m = Mutation::Insertion { index: 0, residue: 'C' };
+        log.record(6, ChainEvent::Mutated { id: child, parent: root, mutation: m, sequence: "CMA".into() });
+        log.record(7, ChainEvent::Mutated { id: grand, parent: child, mutation: m, sequence: "CCMA".into() });
+        log.record(8, ChainEvent::Generated { id: other, sequence: "K".into() });
+        let rows = log.lineage(root, 10);
+        let shape: Vec<(ChainId, usize, &str)> = rows.iter().map(|r| (r.id, r.depth, r.how)).collect();
+        assert_eq!(shape, vec![(root, 0, "translated"), (child, 1, "mutated"), (grand, 2, "mutated")]);
+        assert_eq!(log.lineage(root, 2).len(), 2, "capped");
+        assert!(log.lineage(999, 5).is_empty());
+        assert_eq!(log.translated_roots(), vec![(root, 5)]);
     }
 }

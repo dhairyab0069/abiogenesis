@@ -19,6 +19,8 @@ const ORDER: [char; 4] = ['U', 'C', 'A', 'G'];
 const TABLE: &str = "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG";
 /// The start codon.
 pub const START_CODON: &str = "AUG";
+/// The longest strand in the soup, which is the longest gene a strand can hold.
+pub const MAX_PROTEIN_GENE_BASES: usize = 24;
 /// The shortest protein that counts: the start M plus one more.
 pub const MIN_PROTEIN: usize = 2;
 
