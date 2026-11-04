@@ -177,7 +177,7 @@ membrane, strands, a nucleus, orange mitochondria and a coloured halo and links 
 side panel counts cells, eukaryotes, colonies and cell fitness, charts them, and lists the latest cell
 events (hover a cell for its contents). *Cells and Colonies* in the launcher is the molecule simulation
 started with a few ready-made cells and a speed slider (the slider is in the molecule simulation too).
-A full run to the first colony takes a few minutes at normal speed; with the demo's 3x it is about one.
+In the demo the first colony showed up within about 6,000 steps in all 8 seeds tried (under two minutes at normal speed, well under one at the demo's 3x); from an empty soup it takes a few minutes.
 
 **The chain build-up view.** Random amino acid chains appear one colored tile per residue, capped at 50.
 Chains mutate (a substitution flashes the changed tile, an insertion pops a new one in, a deletion shrinks
