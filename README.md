@@ -42,11 +42,11 @@ Abiogenesis is a toy model, written from a layperson's point of view, of the ste
 simple chemistry turning into things that copy and change. It is meant to be watched and played
 with, not to be a research-grade chemistry engine.
 
-It is built in stages. Stages 1 to 4 explain how the process works and how its parts interact, in
-plain terms. Stage 5 is a scenario lab: set up conditions, pick natural or forced selection, and
-watch how a population evolves over time.
+It is built in six stages. Stages 1 to 5 explain how the process works and how its parts interact, in
+plain terms, from molecules in a pool up to cells and multicellular life. Stage 6 is a scenario lab:
+set up conditions, pick natural or forced selection, and watch how a population evolves over time.
 
-**Where it is today:** stage 1 is done. Stages 2 to 5 are in progress and are described in the
+**Where it is today:** stages 1 and 2 are done. Stages 3 to 6 are described in the
 [roadmap](#roadmap).
 
 ## Install
@@ -105,8 +105,16 @@ abiogenesis --version
 
 **The molecule simulation.** Water, methane and amino acid chains drift in a 2D soup with
 temperature-dependent Brownian motion. Hover a molecule for its sequence, length, energy and atomic
-composition. The side panel shows live stats (FPS, step, molecule counts, temperature, pH) and any
-sightings of the target pattern, with pause, single-step and reset controls.
+composition. The side panel shows live stats (FPS, step, molecule counts, temperature, pH, pool level,
+protocells) and any sightings of the target pattern, with pause, single-step and reset controls.
+
+**The environment (stage 2).** The row under the controls picks what the soup feels over time:
+*Constant* (the stage 1 soup), *Day and night* (temperature and pH swing in opposite directions every
+20 seconds), *Wet and dry pools* (the pool dries out and refills every 40 seconds) or both, with sliders
+for the base temperature and pH. As the pool dries the water line sinks, stranded molecules settle into
+what is left, and chains crowd together. Where three or more share a grid cell, a **protocell** forms: a
+droplet that keeps its chains in, where they mutate twice as fast and cross over with each other. When
+the pool refills, the droplets burst.
 
 **The chain build-up view.** Random amino acid chains appear one colored tile per residue, capped at 50.
 Chains mutate (a substitution flashes the changed tile, an insertion pops a new one in, a deletion shrinks
@@ -131,17 +139,20 @@ population stable while still letting patterns emerge.
 
 - [x] **Stage 1, basic simulation.** Molecules, movement, collisions, temperature and pH, amino acid
   chain generation, mutation and recombination, pattern tracking, interactive tooltips, launcher.
-- [ ] **Stage 2, environment.** Temperature, pH and wetness that cycle over time (wet/dry pools,
+- [x] **Stage 2, environment.** Temperature, pH and wetness that cycle over time (wet/dry pools,
   day and night), user controls, then a grid environment and protocells.
 - [ ] **Stage 3, chemistry and emergence.** Lipids and nucleotides, polymerization rules,
   autocatalysis, self-replication, and a fitness for each molecule.
 - [ ] **Stage 4, visualization and metrics.** Live charts for molecular diversity, complexity,
   replicators and the environment, plus a clearer view of chain generation and lineage.
-- [ ] **Stage 5, scenario lab.** Build a scenario, choose natural or forced selection, and watch
+- [ ] **Stage 5, cells to complex life.** Protocells that grow and divide, then eukaryotes (one cell
+  swallows another, which becomes the mitochondrion, and the DNA gets its own envelope, the nucleus),
+  then cells that stay together and specialize into multicellular life.
+- [ ] **Stage 6, scenario lab.** Build a scenario, choose natural or forced selection, and watch
   populations evolve over time. A small language model trained on protein sequences, written from
   scratch in Rust, supplies the learned fitness and mutation prior.
 
-Stages 2 to 4 stay deliberately simple. Their job is to show people how it works.
+Stages 2 to 5 stay deliberately simple. Their job is to show people how it works.
 
 ## Building from source
 

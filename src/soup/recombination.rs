@@ -7,6 +7,7 @@ use rand::Rng;
 
 /// Probability that a picked pair of chains recombines.
 const COMBINATION_RATE: f64 = 0.01;
+
 pub(super) const MAX_COMBINATIONS_PER_STEP: usize = 10;
 /// Bounds the pair-picking loop, which could otherwise spin forever when the
 /// soup has fewer than two chains.
@@ -31,24 +32,31 @@ impl PrimordialSoup {
                 continue;
             }
             let (a, b) = (&self.molecules[i], &self.molecules[j]);
-            if a.is_amino_acid() && b.is_amino_acid() && self.rng.random::<f64>() < COMBINATION_RATE {
-                // Chains that are empty cannot be crossed (never happens in a
-                // normal run); skip them rather than add a duplicate of a parent.
-                let Some((mut child, cut)) = a.crossover(b, &mut self.rng) else { continue };
-                child.position = Position::new((a.position.x + b.position.x) / 2.0, (a.position.y + b.position.y) / 2.0);
-                child.id = self.events.new_id();
-                self.events.record(
-                    self.step,
-                    ChainEvent::Recombined {
-                        id: child.id,
-                        parents: (a.id, b.id),
-                        cut,
-                        sequence: child.sequence().unwrap_or("").to_string(),
-                    },
-                );
-                self.molecules.push(child);
+            if a.is_amino_acid() && b.is_amino_acid() && self.rng.random::<f64>() < COMBINATION_RATE && self.cross(i, j) {
                 combinations += 1;
             }
         }
+    }
+
+    /// Crosses chains `i` and `j`: adds the child at their midpoint and logs it.
+    /// Returns false (and changes nothing) when the pair cannot be crossed.
+    pub(super) fn cross(&mut self, i: usize, j: usize) -> bool {
+        let (a, b) = (&self.molecules[i], &self.molecules[j]);
+        // Chains that are empty cannot be crossed (never happens in a normal run);
+        // skip them rather than add a duplicate of a parent.
+        let Some((mut child, cut)) = a.crossover(b, &mut self.rng) else { return false };
+        child.position = Position::new((a.position.x + b.position.x) / 2.0, (a.position.y + b.position.y) / 2.0);
+        child.id = self.events.new_id();
+        self.events.record(
+            self.step,
+            ChainEvent::Recombined {
+                id: child.id,
+                parents: (a.id, b.id),
+                cut,
+                sequence: child.sequence().unwrap_or("").to_string(),
+            },
+        );
+        self.molecules.push(child);
+        true
     }
 }

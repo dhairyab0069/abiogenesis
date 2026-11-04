@@ -6,13 +6,17 @@ mod census;
 mod generation;
 mod movement;
 mod mutation;
+mod protocell;
 mod recombination;
 #[cfg(test)]
 mod tests;
 
+use crate::environment::Environment;
 use crate::events::EventLog;
 use crate::model::{Molecule, Position};
 use rand::{SeedableRng, rngs::StdRng};
+
+pub use protocell::Protocell;
 
 /// Population cap for chains (generation) and for the whole soup (recombination).
 pub const MAX_AMINO_ACIDS: usize = 50;
@@ -21,8 +25,16 @@ pub const TARGET_PATTERN: &str = "METHINKS";
 
 pub struct PrimordialSoup {
     pub molecules: Vec<Molecule>,
+    /// The current conditions. The environment sets all three at the start of every
+    /// step, so change them with `set_environment`, not by writing the fields.
     pub temperature: f64,
     pub ph: f64,
+    /// 0.0 = the pool is dry, 1.0 = wet everywhere.
+    pub wetness: f64,
+    /// What the soup feels over time: constant, or cycling.
+    pub environment: Environment,
+    /// Droplets that formed where chains crowded as the pool dried.
+    pub protocells: Vec<Protocell>,
     /// How every chain in the soup came to be. Chains added with `add_molecule`
     /// or by writing `molecules` directly may have no entry, so readers must
     /// treat a missing creation event as normal.
@@ -34,6 +46,9 @@ pub struct PrimordialSoup {
     height: f64,
     total_reactions: u64,
     reactions_this_step: u64,
+    protocells_formed: u64,
+    protocells_burst: u64,
+    next_protocell_id: u64,
     rng: StdRng,
 }
 
@@ -51,12 +66,18 @@ impl PrimordialSoup {
             molecules: Vec::new(),
             temperature,
             ph,
+            wetness: 1.0,
+            environment: Environment::constant(temperature, ph),
+            protocells: Vec::new(),
             events: EventLog::new(),
             step: 0,
             width,
             height,
             total_reactions: 0,
             reactions_this_step: 0,
+            protocells_formed: 0,
+            protocells_burst: 0,
+            next_protocell_id: 1,
             rng,
         };
         for _ in 0..generation::INITIAL_AMINO_ACIDS {
@@ -84,15 +105,32 @@ impl PrimordialSoup {
         p.x >= 0.0 && p.x < self.width && p.y >= 0.0 && p.y < self.height
     }
 
-    /// Advances one step: generation, mutation, recombination, movement. Returns
-    /// the sequences that contain the target pattern after the step.
+    /// Replaces the environment and applies it right away.
+    pub fn set_environment(&mut self, environment: Environment) {
+        self.environment = environment;
+        self.apply_environment();
+    }
+
+    fn apply_environment(&mut self) {
+        let conditions = self.environment.at(self.step);
+        self.temperature = conditions.temperature;
+        self.ph = conditions.ph;
+        self.wetness = conditions.wetness;
+    }
+
+    /// Advances one step: the environment, generation, mutation, recombination,
+    /// movement, then protocells. Returns the sequences that contain the target
+    /// pattern after the step.
     pub fn simulate_step(&mut self) -> Vec<String> {
         self.step += 1;
         self.reactions_this_step = 0;
+        self.apply_environment();
         self.generate_amino_acids();
         self.mutate();
         self.recombine();
+        self.recombine_in_protocells();
         self.drift();
+        self.update_protocells();
         self.target_matches()
     }
 
