@@ -77,7 +77,7 @@ impl ReadingFrame {
 pub fn reading_frame(rna: &str) -> Option<ReadingFrame> {
     let start = rna.find(START_CODON)?;
     let mut codons = Vec::new();
-    for chunk in rna.as_bytes()[start..].chunks_exact(3) {
+    for chunk in rna.as_bytes()[start..].as_chunks::<3>().0 {
         let text = std::str::from_utf8(chunk).ok()?;
         let meaning = read_codon(text)?;
         codons.push((text.to_string(), meaning));
