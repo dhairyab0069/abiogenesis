@@ -18,6 +18,7 @@
 -->
 
 <p align="center">
+  <a href="https://dhairyab0069.github.io/abiogenesis-io/"><b>Project page</b></a> &nbsp;·&nbsp;
   <a href="docs/phase1_features.md">Phase 1 details</a> &nbsp;·&nbsp;
   <a href="https://github.com/dhairyab0069/abiogenesis/releases">All downloads</a>
 </p>
