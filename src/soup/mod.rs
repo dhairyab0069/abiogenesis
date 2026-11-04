@@ -2,6 +2,8 @@
 //! drift with temperature-dependent Brownian motion, mutate and recombine, and
 //! where we watch for a target pattern ("METHINKS") to emerge.
 
+mod cell;
+mod cells;
 mod census;
 mod chemistry;
 mod generation;
@@ -19,6 +21,8 @@ use crate::events::EventLog;
 use crate::model::{Molecule, Position};
 use rand::{SeedableRng, rngs::StdRng};
 
+pub use cell::{Cell, CellEvent, MAX_CELLS, MAX_CELL_STRANDS, MAX_COLONY_SIZE, MAX_MITOCHONDRIA, Role};
+pub use cells::CellStats;
 pub use history::{History, Metric, Sample};
 pub use protein::gene_boost;
 pub use protocell::Protocell;
@@ -47,6 +51,9 @@ pub struct PrimordialSoup {
     /// Steps simulated so far. Seed chains are logged at step 0; events during
     /// the n-th `simulate_step` are logged at step n.
     pub step: u64,
+    /// Stage 5 cells (see `cell` and `cells`); empty unless `enable_cells` was called.
+    pub cells: Vec<Cell>,
+    cell_layer: cells::CellLayer,
     /// Sampled numbers over time, for the charts.
     pub history: History,
     width: f64,
@@ -85,6 +92,8 @@ impl PrimordialSoup {
             protocells: Vec::new(),
             events: EventLog::new(),
             step: 0,
+            cells: Vec::new(),
+            cell_layer: cells::CellLayer::default(),
             history: History::default(),
             width,
             height,
@@ -113,6 +122,7 @@ impl PrimordialSoup {
         let mut soup = Self::new(width, height, 300.0, 7.0);
         soup.add_small_molecules();
         soup.add_prebiotic_chemistry();
+        soup.enable_cells();
         soup
     }
 
@@ -141,7 +151,7 @@ impl PrimordialSoup {
     }
 
     /// Advances one step: the environment, generation, mutation, recombination,
-    /// the stage 3 chemistry, movement, then protocells. Returns the sequences that contain the target
+    /// the stage 3 chemistry, the stage 5 cells, movement, then protocells. Returns the sequences that contain the target
     /// pattern after the step.
     pub fn simulate_step(&mut self) -> Vec<String> {
         self.step += 1;
@@ -152,6 +162,7 @@ impl PrimordialSoup {
         self.recombine();
         self.recombine_in_protocells();
         self.step_chemistry();
+        self.step_cells();
         self.drift();
         self.update_protocells();
         self.record_history();

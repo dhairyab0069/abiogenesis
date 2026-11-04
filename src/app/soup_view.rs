@@ -1,6 +1,7 @@
 //! The molecule simulation screen: a live soup, its statistics and its canvas.
 
 use super::fps::Fps;
+use super::cell_draw::{cell_tooltip, draw_cells};
 use super::sparkline::sparkline;
 use super::molecule_draw::{CATALYST_COLOR, LIPID_COLOR, base_color, molecule_color, molecule_size, tooltip_text};
 use super::{Screen, back_button};
@@ -14,6 +15,9 @@ use std::collections::HashSet;
 use std::time::{Duration, Instant};
 
 const STEPS_PER_SECOND: f64 = 60.0;
+/// The speed slider's range, and the most steps one frame may run.
+const MAX_SPEED: f64 = 8.0;
+const MAX_STEPS_PER_FRAME: u32 = 120;
 /// Steps between refreshes of the lineage panel.
 const LINEAGE_EVERY: u64 = 60;
 const LINEAGE_ROWS: usize = 14;
@@ -38,11 +42,22 @@ pub struct SoupView {
     base_ph: f64,
     /// The biggest protein lineage, refreshed every few seconds.
     lineage: Vec<LineageRow>,
+    /// How many times faster than 60 steps a second the soup runs.
+    speed: f64,
+    /// Whether this is the cells demo (reset seeds the cells again).
+    demo_cells: bool,
 }
 
 impl Default for SoupView {
     fn default() -> Self {
-        Self {
+        Self::fresh(false)
+    }
+}
+
+impl SoupView {
+    /// A new soup; the cells demo starts with a few ready-made cells and runs faster.
+    fn fresh(demo_cells: bool) -> Self {
+        let mut view = Self {
             soup: PrimordialSoup::standard(800.0, 600.0),
             running: true,
             last_tick: Instant::now(),
@@ -55,11 +70,20 @@ impl Default for SoupView {
             base_temperature: 300.0,
             base_ph: 7.0,
             lineage: Vec::new(),
+            speed: if demo_cells { 3.0 } else { 1.0 },
+            demo_cells,
+        };
+        if demo_cells {
+            view.soup.seed_cells(10);
         }
+        view
     }
-}
 
-impl SoupView {
+    /// The cells and colonies screen: the molecule simulation seeded with cells.
+    pub fn cells_demo() -> Self {
+        Self::fresh(true)
+    }
+
     fn step(&mut self) {
         self.steps += 1;
         if self.steps.is_multiple_of(LINEAGE_EVERY) {
@@ -82,11 +106,14 @@ impl SoupView {
         if !self.running {
             return;
         }
-        self.pending += elapsed * STEPS_PER_SECOND;
-        while self.pending >= 1.0 {
+        self.pending += elapsed * STEPS_PER_SECOND * self.speed;
+        let mut ran = 0;
+        while self.pending >= 1.0 && ran < MAX_STEPS_PER_FRAME {
             self.step();
             self.pending -= 1.0;
+            ran += 1;
         }
+        self.pending = self.pending.min(1.0);
     }
 
     /// Hands the chosen preset and base conditions to the soup.
@@ -97,8 +124,8 @@ impl SoupView {
     /// Starts a fresh soup, keeping the current canvas size and environment choice.
     fn reset(&mut self) {
         let (w, h) = (self.soup.width(), self.soup.height());
-        let (preset, temperature, ph) = (self.preset, self.base_temperature, self.base_ph);
-        *self = Self { preset, base_temperature: temperature, base_ph: ph, ..Self::default() };
+        let (preset, temperature, ph, speed, demo) = (self.preset, self.base_temperature, self.base_ph, self.speed, self.demo_cells);
+        *self = Self { preset, base_temperature: temperature, base_ph: ph, speed, ..Self::fresh(demo) };
         self.soup.resize(w, h);
         self.apply_environment();
     }
@@ -142,6 +169,7 @@ impl SoupView {
                 if ui.button("Reset").clicked() {
                     self.reset();
                 }
+                ui.add(egui::Slider::new(&mut self.speed, 1.0..=MAX_SPEED).suffix("x").text("Speed"));
             });
             self.environment_ui(ui);
         });
@@ -182,6 +210,7 @@ impl SoupView {
             self.stats_grid(ui);
             ui.add_space(8.0);
             egui::CollapsingHeader::new("Charts").default_open(true).show(ui, |ui| self.charts_ui(ui));
+            egui::CollapsingHeader::new("Cell events").default_open(self.demo_cells).show(ui, |ui| self.cell_events_ui(ui));
             egui::CollapsingHeader::new("Protein lineage").default_open(false).show(ui, |ui| self.lineage_ui(ui));
             egui::CollapsingHeader::new("Molecule counts").default_open(false).show(ui, |ui| {
                 for (name, count) in self.soup.counts() {
@@ -205,6 +234,16 @@ impl SoupView {
             let color: Color32 = egui::ecolor::Hsva::new(hue, 0.55, 0.95, 1.0).into();
             let decimals = if matches!(metric, Metric::StrandFitness | Metric::Wetness) { 2 } else { 0 };
             sparkline(ui, metric.label(), &history.series(*metric), color, decimals);
+        }
+    }
+
+    /// The latest things that happened to cells, newest first.
+    fn cell_events_ui(&self, ui: &mut egui::Ui) {
+        if self.soup.cell_events().is_empty() {
+            ui.weak("no cell has formed yet");
+        }
+        for (step, event) in self.soup.cell_events().iter().rev().take(12) {
+            ui.label(format!("{step}: {}", event.describe()));
         }
     }
 
@@ -246,6 +285,13 @@ impl SoupView {
             row("Genes", format!("{} strands", self.soup.gene_count()));
             row("Proteins made", self.soup.proteins_made().to_string());
             row("Protein fitness", format!("{:.2}", self.soup.mean_protein_fitness()));
+            row("Cells", format!("{} ({} eukaryotes)", self.soup.cell_count(), self.soup.eukaryote_count()));
+            row("Mitochondria", self.soup.mitochondria_total().to_string());
+            row("Colonies", format!("{} (largest {})", self.soup.colony_count(), self.soup.largest_colony()));
+            row("Cell fitness", format!("{:.2}", self.soup.mean_cell_fitness()));
+            let cs = self.soup.cell_stats();
+            row("Divided / died", format!("{} / {}", cs.divisions, cs.deaths));
+            row("Swallowed", cs.engulfments.to_string());
             row("Lipids", self.soup.lipid_count().to_string());
             row("Reactions", self.soup.total_reactions().to_string());
             row("This step", self.soup.reactions_this_step().to_string());
@@ -282,6 +328,8 @@ impl SoupView {
             painter.circle_stroke(center, p.radius as f32, Stroke::new(2.0, DROPLET));
         }
 
+        draw_cells(&painter, rect.min, &self.soup.cells);
+
         for m in &self.soup.molecules {
             let center = screen_pos(rect, m);
             if let Some(seq) = m.strand_sequence() {
@@ -299,10 +347,20 @@ impl SoupView {
             }
         }
 
+        let hovered_cell = response.hover_pos().and_then(|p| {
+            let at = (p - rect.min).to_pos2();
+            self.soup.cells.iter().find(|c| c.contains(at.x as f64, at.y as f64))
+        });
         let hovered = response
             .hover_pos()
+            .filter(|_| hovered_cell.is_none())
             .and_then(|p| self.soup.molecules.iter().find(|m| screen_pos(rect, m).distance(p) < molecule_size(m)));
-        if let Some(m) = hovered {
+        if let Some(c) = hovered_cell {
+            let text = cell_tooltip(c);
+            response.on_hover_ui_at_pointer(|ui| {
+                ui.monospace(text);
+            });
+        } else if let Some(m) = hovered {
             painter.circle_stroke(screen_pos(rect, m), molecule_size(m) * 0.7, Stroke::new(1.0, Color32::WHITE));
             let mut text = tooltip_text(m);
             if let Some(origin) = self.soup.events.creation_of(m.id).filter(|_| m.is_amino_acid()) {
@@ -354,7 +412,7 @@ fn draw_lipid(painter: &egui::Painter, center: Pos2) {
 }
 
 /// The charts in the side panel, in order.
-const CHARTS: [Metric; 8] = [
+const CHARTS: [Metric; 11] = [
     Metric::Strands,
     Metric::Catalysts,
     Metric::StrandFitness,
@@ -363,6 +421,9 @@ const CHARTS: [Metric; 8] = [
     Metric::Temperature,
     Metric::Wetness,
     Metric::Protocells,
+    Metric::Cells,
+    Metric::Eukaryotes,
+    Metric::Colonies,
 ];
 
 /// The translated protein with the most descendants, as lineage rows. Looks at the

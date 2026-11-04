@@ -156,9 +156,9 @@ impl PrimordialSoup {
             temperature: self.temperature,
             wetness: self.wetness,
             protocells: self.protocells.len(),
-            cells: 0,
-            eukaryotes: 0,
-            colonies: 0,
+            cells: self.cell_count(),
+            eukaryotes: self.eukaryote_count(),
+            colonies: self.colony_count(),
         }
     }
 

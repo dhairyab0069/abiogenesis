@@ -53,6 +53,10 @@ impl PrimordialSoup {
             m.position.x *= sx;
             m.position.y *= sy;
         }
+        for c in &mut self.cells {
+            c.x *= sx;
+            c.y *= sy;
+        }
         self.width = width;
         self.height = height;
     }
