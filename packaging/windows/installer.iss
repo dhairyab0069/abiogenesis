@@ -1,9 +1,9 @@
 ; Inno Setup 6 script for Abiogenesis.
-; Build: iscc /DAppVersion=0.3.0 /DSourceExe=..\..\target\x86_64-pc-windows-msvc\release\abiogenesis.exe installer.iss
+; Build: iscc /DAppVersion=0.4.0 /DSourceExe=..\..\target\x86_64-pc-windows-msvc\release\abiogenesis.exe installer.iss
 ; Output: out\Abiogenesis-<version>-windows-x86_64-setup.exe (relative to this file)
 
 #ifndef AppVersion
-  #define AppVersion "0.3.0"
+  #define AppVersion "0.4.0"
 #endif
 #ifndef SourceExe
   #define SourceExe "..\..\target\x86_64-pc-windows-msvc\release\abiogenesis.exe"
