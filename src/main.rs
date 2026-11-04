@@ -6,13 +6,14 @@ use abiogenesis::app::{App, Start};
 const USAGE: &str = "\
 Abiogenesis Simulation
 
-Usage: abiogenesis [molecules | chains | formation | cells]
+Usage: abiogenesis [molecules | chains | formation | cells | animals]
 
   (none)      open the launcher menu
   molecules   open the molecule simulation directly
   chains      open the chain build-up view directly
   formation   open the genes and proteins scene directly
   cells       open the cells and colonies demo (the molecule simulation, seeded with cells)
+  animals     open the animals screen: from sea to land, side by side with the real story
 
 Options:
   -h, --help     print this help
@@ -25,6 +26,7 @@ fn main() -> eframe::Result {
         Some("chains") => Start::Chains,
         Some("formation" | "genes") => Start::Formation,
         Some("cells") => Start::Cells,
+        Some("animals") => Start::Animals,
         Some("-V" | "--version") => {
             println!("abiogenesis {}", env!("CARGO_PKG_VERSION"));
             return Ok(());

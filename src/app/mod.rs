@@ -1,5 +1,7 @@
-//! The GUI: a launcher menu, the molecule simulation, the chain build-up view and the genes-and-proteins scene.
+//! The GUI: a launcher menu, the molecule simulation, the chain build-up view, the genes-and-proteins scene and the animals screen.
 
+mod animal_draw;
+mod animals_view;
 mod cell_draw;
 mod cell_inspector;
 mod chains_view;
@@ -10,6 +12,7 @@ mod soup_view;
 mod sparkline;
 mod tiles;
 
+pub use animals_view::AnimalsView;
 pub use chains_view::ChainsView;
 pub use formation_view::FormationView;
 pub use soup_view::SoupView;
@@ -33,6 +36,7 @@ pub enum Start {
     Chains,
     Formation,
     Cells,
+    Animals,
 }
 
 impl App {
@@ -43,6 +47,7 @@ impl App {
             Start::Chains => Screen::Chains(Box::default()),
             Start::Formation => Screen::Formation(Box::default()),
             Start::Cells => Screen::Soup(Box::new(SoupView::cells_demo())),
+            Start::Animals => Screen::Animals(Box::default()),
         };
         Self { screen }
     }
@@ -55,6 +60,7 @@ enum Screen {
     Soup(Box<SoupView>),
     Chains(Box<ChainsView>),
     Formation(Box<FormationView>),
+    Animals(Box<AnimalsView>),
 }
 
 impl eframe::App for App {
@@ -64,6 +70,7 @@ impl eframe::App for App {
             Screen::Soup(view) => view.ui(ui),
             Screen::Chains(view) => view.ui(ui),
             Screen::Formation(view) => view.ui(ui),
+            Screen::Animals(view) => view.ui(ui),
         };
         if let Some(next) = next {
             self.screen = next;
@@ -97,6 +104,10 @@ fn menu(ui: &mut egui::Ui) -> Option<Screen> {
             ui.add_space(12.0);
             if ui.add_sized(size, egui::Button::new("Cells and Colonies")).clicked() {
                 next = Some(Screen::Soup(Box::new(SoupView::cells_demo())));
+            }
+            ui.add_space(12.0);
+            if ui.add_sized(size, egui::Button::new("Animals: from sea to land")).clicked() {
+                next = Some(Screen::Animals(Box::default()));
             }
         });
     });

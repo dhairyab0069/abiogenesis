@@ -1,5 +1,7 @@
 //! Abiogenesis: a toy simulation of life arising from non-living matter.
 
+pub mod animals;
+pub mod animalviz;
 pub mod app;
 pub mod cellviz;
 pub mod chain_view;

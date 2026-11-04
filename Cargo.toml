@@ -14,3 +14,8 @@ rand = "0.9"
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# The animals run simulates 1600 generations of ~200 animals up front, which is far too
+# slow in an unoptimised debug or test build (minutes), so debug builds are lightly optimised.
+[profile.dev]
+opt-level = 1
