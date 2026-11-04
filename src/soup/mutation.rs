@@ -16,15 +16,8 @@ impl PrimordialSoup {
     pub(super) fn mutate(&mut self) {
         let rng = &mut self.rng;
         for m in &mut self.molecules {
-            let sheltered = self
-                .protocells
-                .iter()
-                .any(|p| p.contains(m.position.x, m.position.y));
-            let rate = if sheltered {
-                MUTATION_RATE * MUTATION_BOOST
-            } else {
-                MUTATION_RATE
-            };
+            let sheltered = self.protocells.iter().any(|p| p.contains(m.position.x, m.position.y));
+            let rate = if sheltered { MUTATION_RATE * MUTATION_BOOST } else { MUTATION_RATE };
             if m.is_amino_acid() && rng.random::<f64>() < rate {
                 let edit = match rng.random_range(0..3) {
                     0 => m.mutate_substitution(rng),

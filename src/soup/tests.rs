@@ -7,11 +7,7 @@ use crate::events::{ChainEvent, Mutation};
 fn starts_with_seed_chains_inside_bounds() {
     let soup = PrimordialSoup::with_seed(800.0, 600.0, 300.0, 7.0, 1);
     assert_eq!(soup.molecules.len(), INITIAL_AMINO_ACIDS);
-    assert!(
-        soup.molecules
-            .iter()
-            .all(|m| m.is_amino_acid() && soup.is_valid_position(&m.position))
-    );
+    assert!(soup.molecules.iter().all(|m| m.is_amino_acid() && soup.is_valid_position(&m.position)));
 }
 
 #[test]
@@ -89,19 +85,12 @@ fn apply(parent: &str, m: &Mutation) -> String {
 fn every_chain_has_a_creation_event() {
     let soup = busy_soup(21);
     for m in soup.molecules.iter().filter(|m| m.is_amino_acid()) {
-        let created = soup
-            .events
-            .creation_of(m.id)
-            .expect("chain has no creation event");
+        let created = soup.events.creation_of(m.id).expect("chain has no creation event");
         assert_eq!(created.event.sequence(), m.sequence().unwrap());
     }
     // Seed chains are logged at step 0 and the step counter advanced.
     assert_eq!(soup.step, 3_000);
-    assert!(
-        soup.events.since(0)[..INITIAL_AMINO_ACIDS]
-            .iter()
-            .all(|s| s.step == 0)
-    );
+    assert!(soup.events.since(0)[..INITIAL_AMINO_ACIDS].iter().all(|s| s.step == 0));
 }
 
 #[test]
@@ -122,10 +111,7 @@ fn parents_are_created_before_their_children() {
             );
         }
     }
-    assert!(
-        mutated > 0 && recombined > 0,
-        "run too quiet to test anything"
-    );
+    assert!(mutated > 0 && recombined > 0, "run too quiet to test anything");
 }
 
 #[test]
@@ -139,23 +125,11 @@ fn event_steps_never_go_backwards() {
 #[test]
 fn recorded_edits_explain_the_children() {
     let soup = busy_soup(24);
-    let seq_of = |id| {
-        soup.events
-            .creation_of(id)
-            .unwrap()
-            .event
-            .sequence()
-            .to_string()
-    };
+    let seq_of = |id| soup.events.creation_of(id).unwrap().event.sequence().to_string();
     let (mut sub, mut ins, mut del) = (0, 0, 0);
     for stamped in soup.events.since(0) {
         match &stamped.event {
-            ChainEvent::Mutated {
-                parent,
-                mutation,
-                sequence,
-                ..
-            } => {
+            ChainEvent::Mutated { parent, mutation, sequence, .. } => {
                 assert_eq!(&apply(&seq_of(*parent), mutation), sequence);
                 match mutation {
                     Mutation::Substitution { .. } => sub += 1,
@@ -163,26 +137,14 @@ fn recorded_edits_explain_the_children() {
                     Mutation::Deletion { .. } => del += 1,
                 }
             }
-            ChainEvent::Recombined {
-                parents,
-                cut,
-                sequence,
-                ..
-            } => {
-                let expected = format!(
-                    "{}{}",
-                    &seq_of(parents.0)[..cut.0],
-                    &seq_of(parents.1)[cut.1..]
-                );
+            ChainEvent::Recombined { parents, cut, sequence, .. } => {
+                let expected = format!("{}{}", &seq_of(parents.0)[..cut.0], &seq_of(parents.1)[cut.1..]);
                 assert_eq!(&expected, sequence);
             }
             ChainEvent::Generated { .. } | ChainEvent::Translated { .. } => {}
         }
     }
-    assert!(
-        sub > 0 && ins > 0 && del > 0,
-        "saw sub {sub}, ins {ins}, del {del}"
-    );
+    assert!(sub > 0 && ins > 0 && del > 0, "saw sub {sub}, ins {ins}, del {del}");
 }
 
 #[test]
@@ -204,11 +166,7 @@ fn mutated_child_replaces_parent_with_new_id() {
     assert!(!mutated_parents.is_empty());
     // A parent that was mutated is gone from the soup (unless recombination
     // alone kept a copy, which it never does: children are new chains).
-    assert!(
-        soup.molecules
-            .iter()
-            .all(|m| !mutated_parents.contains(&m.id))
-    );
+    assert!(soup.molecules.iter().all(|m| !mutated_parents.contains(&m.id)));
     assert!(before.iter().any(|id| mutated_parents.contains(id)));
 }
 
@@ -236,13 +194,7 @@ fn same_seed_gives_same_log() {
 fn fingerprint(soup: &PrimordialSoup) -> u64 {
     let mut h: u64 = 1469598103934665603;
     for m in &soup.molecules {
-        let t = format!(
-            "{:?}|{:.6}|{:.6}|{:.6};",
-            m.sequence(),
-            m.energy,
-            m.position.x,
-            m.position.y
-        );
+        let t = format!("{:?}|{:.6}|{:.6}|{:.6};", m.sequence(), m.energy, m.position.x, m.position.y);
         for b in t.bytes() {
             h ^= b as u64;
             h = h.wrapping_mul(1099511628211);
@@ -255,19 +207,14 @@ fn fingerprint(soup: &PrimordialSoup) -> u64 {
 /// logging existed (same seeds, 3000 steps, 300x200 soup).
 #[test]
 fn seeded_runs_match_the_pre_event_log_code() {
-    for (seed, temp, len, hash) in [
-        (11, 300.0, 50, 0xdfe75a6faf00ccc8),
-        (12, 3000.0, 50, 0xa74eda001e6d664f),
-    ] {
+    for (seed, temp, len, hash) in
+        [(11, 300.0, 50, 0xdfe75a6faf00ccc8), (12, 3000.0, 50, 0xa74eda001e6d664f)]
+    {
         let mut soup = PrimordialSoup::with_seed(300.0, 200.0, temp, 7.0, seed);
         for _ in 0..3_000 {
             soup.simulate_step();
         }
         assert_eq!(soup.molecules.len(), len);
-        assert_eq!(
-            fingerprint(&soup),
-            hash,
-            "seed {seed} diverged from the old behaviour"
-        );
+        assert_eq!(fingerprint(&soup), hash, "seed {seed} diverged from the old behaviour");
     }
 }

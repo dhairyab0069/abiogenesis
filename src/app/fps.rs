@@ -11,11 +11,7 @@ pub(super) struct Fps {
 
 impl Default for Fps {
     fn default() -> Self {
-        Self {
-            window_start: Instant::now(),
-            frames: 0,
-            value: 0.0,
-        }
+        Self { window_start: Instant::now(), frames: 0, value: 0.0 }
     }
 }
 

@@ -46,11 +46,7 @@ pub(super) fn expression_rate(sequence: &str, sheltered: bool) -> f64 {
     if translate(sequence).is_none() {
         return 0.0;
     }
-    if sheltered {
-        EXPRESSION_RATE * SHELTER_EXPRESSION_BOOST
-    } else {
-        EXPRESSION_RATE
-    }
+    if sheltered { EXPRESSION_RATE * SHELTER_EXPRESSION_BOOST } else { EXPRESSION_RATE }
 }
 
 impl PrimordialSoup {
@@ -61,27 +57,14 @@ impl PrimordialSoup {
 
     /// Strands that carry a gene (they spell a protein of at least two amino acids).
     pub fn gene_count(&self) -> usize {
-        self.molecules
-            .iter()
-            .filter_map(Molecule::strand_sequence)
-            .filter(|s| translate(s).is_some())
-            .count()
+        self.molecules.iter().filter_map(Molecule::strand_sequence).filter(|s| translate(s).is_some()).count()
     }
 
     /// The average fitness of the proteins the strands in the soup would make, or 0.
     pub fn mean_protein_fitness(&self) -> f64 {
-        let fits: Vec<f64> = self
-            .molecules
-            .iter()
-            .filter_map(Molecule::strand_sequence)
-            .filter_map(translate)
-            .map(|p| protein_fitness(&p))
-            .collect();
-        if fits.is_empty() {
-            0.0
-        } else {
-            fits.iter().sum::<f64>() / fits.len() as f64
-        }
+        let fits: Vec<f64> =
+            self.molecules.iter().filter_map(Molecule::strand_sequence).filter_map(translate).map(|p| protein_fitness(&p)).collect();
+        if fits.is_empty() { 0.0 } else { fits.iter().sum::<f64>() / fits.len() as f64 }
     }
 
     /// Each strand with a gene may make its protein this step.
@@ -102,9 +85,7 @@ impl PrimordialSoup {
 
     /// Makes the protein of `gene` next to `at`, if there is room (or a worse chain to replace).
     fn express(&mut self, at: Position, gene: &str) {
-        let Some(protein) = translate(gene) else {
-            return;
-        };
+        let Some(protein) = translate(gene) else { return };
         let mut chain = Molecule::amino_acid(protein.clone(), 1.0 + protein.len() as f64 * 0.1);
         chain.position = Position::new(
             (at.x + self.rng.random_range(-APPEAR_RADIUS..APPEAR_RADIUS)).clamp(0.0, self.width),
@@ -115,25 +96,14 @@ impl PrimordialSoup {
         } else {
             let worst = (0..self.molecules.len())
                 .filter(|&i| self.molecules[i].is_amino_acid())
-                .min_by(|&a, &b| {
-                    self.molecules[a]
-                        .fitness()
-                        .total_cmp(&self.molecules[b].fitness())
-                });
+                .min_by(|&a, &b| self.molecules[a].fitness().total_cmp(&self.molecules[b].fitness()));
             match worst {
                 Some(i) if self.molecules[i].fitness() < chain.fitness() => Some(i),
                 _ => return,
             }
         };
         chain.id = self.events.new_id();
-        self.events.record(
-            self.step,
-            ChainEvent::Translated {
-                id: chain.id,
-                gene: gene.to_string(),
-                sequence: protein,
-            },
-        );
+        self.events.record(self.step, ChainEvent::Translated { id: chain.id, gene: gene.to_string(), sequence: protein });
         self.proteins_made += 1;
         match slot {
             Some(i) => self.molecules[i] = chain,
@@ -199,26 +169,16 @@ mod tests {
             }
         }
         assert!(soup.proteins_made() >= 1);
-        let chain = soup
-            .molecules
-            .iter()
-            .find(|m| m.is_amino_acid())
-            .expect("a protein appeared");
+        let chain = soup.molecules.iter().find(|m| m.is_amino_acid()).expect("a protein appeared");
         assert_eq!(chain.sequence(), Some("MAFKD"));
         assert!(chain.position.distance_to(&Position::new(200.0, 150.0)) < 25.0);
         let event = soup.events.creation_of(chain.id).expect("logged");
-        assert!(
-            matches!(&event.event, ChainEvent::Translated { gene, sequence, .. } if gene == GENE && sequence == "MAFKD")
-        );
+        assert!(matches!(&event.event, ChainEvent::Translated { gene, sequence, .. } if gene == GENE && sequence == "MAFKD"));
     }
 
     #[test]
     fn a_strand_without_a_gene_makes_nothing() {
-        let mut soup = soup_with(vec![at(
-            Molecule::strand("GGGCCCGGGCCC".into()),
-            200.0,
-            150.0,
-        )]);
+        let mut soup = soup_with(vec![at(Molecule::strand("GGGCCCGGGCCC".into()), 200.0, 150.0)]);
         for _ in 0..10_000 {
             soup.express_genes();
         }
@@ -229,18 +189,9 @@ mod tests {
 
     #[test]
     fn expression_never_passes_the_chain_cap() {
-        let mut crowd: Vec<Molecule> = (0..MAX_AMINO_ACIDS)
-            .map(|k| {
-                at(
-                    Molecule::amino_acid("AAAA".into(), 1.0),
-                    10.0 + k as f64,
-                    20.0,
-                )
-            })
-            .collect();
-        crowd.extend(
-            (0..10).map(|k| at(Molecule::strand(GENE.into()), 50.0 + k as f64 * 20.0, 150.0)),
-        );
+        let mut crowd: Vec<Molecule> =
+            (0..MAX_AMINO_ACIDS).map(|k| at(Molecule::amino_acid("AAAA".into(), 1.0), 10.0 + k as f64, 20.0)).collect();
+        crowd.extend((0..10).map(|k| at(Molecule::strand(GENE.into()), 50.0 + k as f64 * 20.0, 150.0)));
         let mut soup = soup_with(crowd);
         for _ in 0..3_000 {
             soup.express_genes();
@@ -253,15 +204,8 @@ mod tests {
 
     #[test]
     fn at_the_cap_a_worse_protein_does_not_replace_a_better_chain() {
-        let mut crowd: Vec<Molecule> = (0..MAX_AMINO_ACIDS)
-            .map(|k| {
-                at(
-                    Molecule::amino_acid("AVKD".into(), 1.0),
-                    10.0 + k as f64,
-                    20.0,
-                )
-            })
-            .collect();
+        let mut crowd: Vec<Molecule> =
+            (0..MAX_AMINO_ACIDS).map(|k| at(Molecule::amino_acid("AVKD".into(), 1.0), 10.0 + k as f64, 20.0)).collect();
         crowd.push(at(Molecule::strand("AUGUUUUUUUUUUAA".into()), 200.0, 150.0));
         let mut soup = soup_with(crowd);
         for _ in 0..3_000 {
@@ -275,13 +219,7 @@ mod tests {
         let run = |sheltered: bool| {
             let mut soup = soup_with(vec![at(Molecule::strand(GENE.into()), 200.0, 150.0)]);
             if sheltered {
-                soup.protocells.push(Protocell {
-                    id: 1,
-                    x: 200.0,
-                    y: 150.0,
-                    radius: 40.0,
-                    born_step: 0,
-                });
+                soup.protocells.push(Protocell { id: 1, x: 200.0, y: 150.0, radius: 40.0, born_step: 0 });
             }
             for _ in 0..4_000 {
                 soup.express_genes();
@@ -312,12 +250,7 @@ mod tests {
             for _ in 0..1_500 {
                 soup.simulate_step();
             }
-            (
-                soup.proteins_made(),
-                soup.strand_count(),
-                soup.events.len(),
-                soup.history.samples().len(),
-            )
+            (soup.proteins_made(), soup.strand_count(), soup.events.len(), soup.history.samples().len())
         };
         assert_eq!(run(), run());
     }
@@ -327,27 +260,12 @@ mod tests {
         let mut soup = PrimordialSoup::with_seed(800.0, 600.0, 300.0, 7.0, 4);
         soup.add_small_molecules();
         soup.add_prebiotic_chemistry();
-        soup.set_environment(crate::environment::Environment::preset(
-            crate::environment::Preset::Both,
-            300.0,
-            7.0,
-        ));
+        soup.set_environment(crate::environment::Environment::preset(crate::environment::Preset::Both, 300.0, 7.0));
         for _ in 0..10_000 {
             soup.simulate_step();
-            assert!(
-                soup.amino_acid_count()
-                    <= MAX_AMINO_ACIDS + super::super::recombination::MAX_COMBINATIONS_PER_STEP
-            );
+            assert!(soup.amino_acid_count() <= MAX_AMINO_ACIDS + super::super::recombination::MAX_COMBINATIONS_PER_STEP);
         }
-        eprintln!(
-            "proteins {} genes {} strands {}",
-            soup.proteins_made(),
-            soup.gene_count(),
-            soup.strand_count()
-        );
-        assert!(
-            soup.proteins_made() > 0,
-            "genes should appear and be read in a long run"
-        );
+        eprintln!("proteins {} genes {} strands {}", soup.proteins_made(), soup.gene_count(), soup.strand_count());
+        assert!(soup.proteins_made() > 0, "genes should appear and be read in a long run");
     }
 }

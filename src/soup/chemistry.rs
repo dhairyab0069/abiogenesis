@@ -73,11 +73,7 @@ pub(super) fn replication_rate(sequence: &str, sheltered: bool) -> f64 {
 pub(super) fn decay_probability(m: &Molecule, wetness: f64, sheltered: bool) -> f64 {
     let shelter = if sheltered { SHELTER_DECAY } else { 1.0 };
     if let Some(seq) = m.strand_sequence() {
-        STRAND_DECAY
-            * (1.0 - m.fitness())
-            * (0.5 + wetness)
-            * (1.0 + seq.len() as f64 * 0.03)
-            * shelter
+        STRAND_DECAY * (1.0 - m.fitness()) * (0.5 + wetness) * (1.0 + seq.len() as f64 * 0.03) * shelter
     } else if m.is_lipid() {
         LIPID_DECAY * (0.5 + wetness) * shelter
     } else {
@@ -90,13 +86,7 @@ pub(super) fn decay_probability(m: &Molecule, wetness: f64, sheltered: bool) -> 
 pub(super) fn copy_strand(rng: &mut impl Rng, template: &str, error: f64) -> String {
     complement_strand(template)
         .chars()
-        .map(|c| {
-            if rng.random::<f64>() < error {
-                BASES[rng.random_range(0..BASES.len())]
-            } else {
-                c
-            }
-        })
+        .map(|c| if rng.random::<f64>() < error { BASES[rng.random_range(0..BASES.len())] } else { c })
         .collect()
 }
 
@@ -142,27 +132,13 @@ impl PrimordialSoup {
     }
 
     pub fn longest_strand(&self) -> usize {
-        self.molecules
-            .iter()
-            .filter_map(|m| m.strand_sequence())
-            .map(str::len)
-            .max()
-            .unwrap_or(0)
+        self.molecules.iter().filter_map(|m| m.strand_sequence()).map(str::len).max().unwrap_or(0)
     }
 
     /// The average fitness of the strands, or 0 when there are none.
     pub fn mean_strand_fitness(&self) -> f64 {
-        let strands: Vec<f64> = self
-            .molecules
-            .iter()
-            .filter(|m| m.is_strand())
-            .map(Molecule::fitness)
-            .collect();
-        if strands.is_empty() {
-            0.0
-        } else {
-            strands.iter().sum::<f64>() / strands.len() as f64
-        }
+        let strands: Vec<f64> = self.molecules.iter().filter(|m| m.is_strand()).map(Molecule::fitness).collect();
+        if strands.is_empty() { 0.0 } else { strands.iter().sum::<f64>() / strands.len() as f64 }
     }
 
     /// New strands that started from two free nucleotides.
@@ -189,9 +165,7 @@ impl PrimordialSoup {
         if !self.chemistry {
             return;
         }
-        if self.nucleotide_count() < MAX_FREE_NUCLEOTIDES
-            && self.rng.random::<f64>() < NUCLEOTIDE_SUPPLY
-        {
+        if self.nucleotide_count() < MAX_FREE_NUCLEOTIDES && self.rng.random::<f64>() < NUCLEOTIDE_SUPPLY {
             self.spawn_nucleotide();
         }
         if self.lipid_count() < MAX_LIPIDS && self.rng.random::<f64>() < LIPID_SUPPLY {
@@ -209,9 +183,7 @@ impl PrimordialSoup {
     pub(super) fn polymerize(&mut self) {
         let dry = 1.0 + 3.0 * (1.0 - self.wetness);
         for _ in 0..JOIN_ATTEMPTS {
-            let free: Vec<usize> = (0..self.molecules.len())
-                .filter(|&i| self.molecules[i].is_nucleotide())
-                .collect();
+            let free: Vec<usize> = (0..self.molecules.len()).filter(|&i| self.molecules[i].is_nucleotide()).collect();
             if free.is_empty() {
                 return;
             }
@@ -219,26 +191,15 @@ impl PrimordialSoup {
             if self.rng.random::<f64>() >= POLYMERIZATION_RATE * dry {
                 continue;
             }
-            let (here, base) = (
-                self.molecules[i].position,
-                self.molecules[i].base().unwrap_or('A'),
-            );
+            let (here, base) = (self.molecules[i].position, self.molecules[i].base().unwrap_or('A'));
             let partner = (0..self.molecules.len())
                 .filter(|&j| j != i)
                 .filter(|&j| {
                     let m = &self.molecules[j];
-                    m.is_nucleotide()
-                        || m.strand_sequence()
-                            .is_some_and(|s| s.len() < MAX_STRAND_LENGTH)
+                    m.is_nucleotide() || m.strand_sequence().is_some_and(|s| s.len() < MAX_STRAND_LENGTH)
                 })
                 .map(|j| (j, self.molecules[j].position.distance_to(&here)))
-                .filter(|&(j, d)| {
-                    d <= if self.molecules[j].is_strand() {
-                        EXTEND_DISTANCE
-                    } else {
-                        JOIN_DISTANCE
-                    }
-                })
+                .filter(|&(j, d)| d <= if self.molecules[j].is_strand() { EXTEND_DISTANCE } else { JOIN_DISTANCE })
                 .min_by(|a, b| a.1.total_cmp(&b.1));
             let Some((j, _)) = partner else { continue };
             if let Some(seq) = self.molecules[j].strand_sequence() {
@@ -248,11 +209,7 @@ impl PrimordialSoup {
                 self.molecules.swap_remove(i);
             } else if self.strand_count() < MAX_STRANDS {
                 let other = self.molecules[j].base().unwrap_or('A');
-                let seq = if self.rng.random::<bool>() {
-                    format!("{base}{other}")
-                } else {
-                    format!("{other}{base}")
-                };
+                let seq = if self.rng.random::<bool>() { format!("{base}{other}") } else { format!("{other}{base}") };
                 let there = self.molecules[j].position;
                 let mut strand = Molecule::strand(seq);
                 strand.position = Position::new((here.x + there.x) / 2.0, (here.y + there.y) / 2.0);
@@ -308,16 +265,9 @@ impl PrimordialSoup {
     fn decay(&mut self) {
         let wetness = self.wetness;
         let strands_before = self.strand_count();
-        let Self {
-            molecules,
-            protocells,
-            rng,
-            ..
-        } = self;
+        let Self { molecules, protocells, rng, .. } = self;
         molecules.retain(|m| {
-            let sheltered = protocells
-                .iter()
-                .any(|c| c.contains(m.position.x, m.position.y));
+            let sheltered = protocells.iter().any(|c| c.contains(m.position.x, m.position.y));
             let p = decay_probability(m, wetness, sheltered);
             p <= 0.0 || rng.random::<f64>() >= p
         });
@@ -326,13 +276,8 @@ impl PrimordialSoup {
 
     /// Each lipid drifts a little toward the nearest other lipid, so they clump.
     fn gather_lipids(&mut self) {
-        let lipids: Vec<(usize, Position)> = self
-            .molecules
-            .iter()
-            .enumerate()
-            .filter(|(_, m)| m.is_lipid())
-            .map(|(i, m)| (i, m.position))
-            .collect();
+        let lipids: Vec<(usize, Position)> =
+            self.molecules.iter().enumerate().filter(|(_, m)| m.is_lipid()).map(|(i, m)| (i, m.position)).collect();
         if lipids.len() < 2 {
             return;
         }
@@ -367,10 +312,7 @@ mod tests {
         let mut soup = PrimordialSoup::with_seed(400.0, 300.0, 300.0, 7.0, 31);
         soup.molecules = molecules;
         soup.chemistry = true;
-        soup.set_environment(Environment {
-            base_wetness: 0.0,
-            ..Environment::default()
-        });
+        soup.set_environment(Environment { base_wetness: 0.0, ..Environment::default() });
         soup
     }
 
@@ -380,10 +322,7 @@ mod tests {
         for _ in 0..500 {
             soup.simulate_step();
         }
-        assert_eq!(
-            soup.nucleotide_count() + soup.strand_count() + soup.lipid_count(),
-            0
-        );
+        assert_eq!(soup.nucleotide_count() + soup.strand_count() + soup.lipid_count(), 0);
     }
 
     #[test]
@@ -396,29 +335,19 @@ mod tests {
 
     #[test]
     fn neighbouring_nucleotides_join_into_a_strand() {
-        let mut soup = soup_with(vec![
-            at(Molecule::nucleotide('G'), 100.0, 290.0),
-            at(Molecule::nucleotide('U'), 104.0, 290.0),
-        ]);
+        let mut soup = soup_with(vec![at(Molecule::nucleotide('G'), 100.0, 290.0), at(Molecule::nucleotide('U'), 104.0, 290.0)]);
         for _ in 0..200 {
             soup.polymerize();
         }
         assert_eq!(soup.strands_formed(), 1);
         assert_eq!(soup.strand_count(), 1);
-        let seq = soup
-            .molecules
-            .iter()
-            .find_map(|m| m.strand_sequence())
-            .unwrap();
+        let seq = soup.molecules.iter().find_map(|m| m.strand_sequence()).unwrap();
         assert!(seq == "GU" || seq == "UG");
     }
 
     #[test]
     fn a_nucleotide_next_to_a_strand_extends_it() {
-        let mut soup = soup_with(vec![
-            at(Molecule::strand("GG".into()), 100.0, 290.0),
-            at(Molecule::nucleotide('U'), 103.0, 290.0),
-        ]);
+        let mut soup = soup_with(vec![at(Molecule::strand("GG".into()), 100.0, 290.0), at(Molecule::nucleotide('U'), 103.0, 290.0)]);
         for _ in 0..200 {
             soup.polymerize();
         }
@@ -429,10 +358,7 @@ mod tests {
 
     #[test]
     fn distant_nucleotides_do_not_join() {
-        let mut soup = soup_with(vec![
-            at(Molecule::nucleotide('A'), 20.0, 290.0),
-            at(Molecule::nucleotide('C'), 300.0, 290.0),
-        ]);
+        let mut soup = soup_with(vec![at(Molecule::nucleotide('A'), 20.0, 290.0), at(Molecule::nucleotide('C'), 300.0, 290.0)]);
         for _ in 0..500 {
             soup.polymerize();
         }
@@ -442,10 +368,7 @@ mod tests {
     #[test]
     fn strands_never_pass_the_length_cap() {
         let full = "A".repeat(MAX_STRAND_LENGTH);
-        let mut soup = soup_with(vec![
-            at(Molecule::strand(full), 100.0, 290.0),
-            at(Molecule::nucleotide('U'), 103.0, 290.0),
-        ]);
+        let mut soup = soup_with(vec![at(Molecule::strand(full), 100.0, 290.0), at(Molecule::nucleotide('U'), 103.0, 290.0)]);
         for _ in 0..300 {
             soup.polymerize();
         }
@@ -457,20 +380,14 @@ mod tests {
     fn copy_strand_is_the_complement_without_errors() {
         let mut rng = rand::rng();
         assert_eq!(copy_strand(&mut rng, "GGUACA", 0.0), "CCAUGU");
-        let wrong = (0..50)
-            .filter(|_| copy_strand(&mut rng, "AAAAAAAAAA", 1.0) != "UUUUUUUUUU")
-            .count();
-        assert!(
-            wrong > 40,
-            "errors at rate 1 should almost always change the copy"
-        );
+        let wrong = (0..50).filter(|_| copy_strand(&mut rng, "AAAAAAAAAA", 1.0) != "UUUUUUUUUU").count();
+        assert!(wrong > 40, "errors at rate 1 should almost always change the copy");
     }
 
     #[test]
     fn a_strand_copies_itself_using_up_nucleotides() {
         let mut molecules = vec![at(Molecule::strand("GGUACA".into()), 100.0, 290.0)];
-        molecules
-            .extend((0..10).map(|k| at(Molecule::nucleotide('A'), 90.0 + k as f64 * 3.0, 285.0)));
+        molecules.extend((0..10).map(|k| at(Molecule::nucleotide('A'), 90.0 + k as f64 * 3.0, 285.0)));
         let mut soup = soup_with(molecules);
         for _ in 0..3_000 {
             soup.replicate();
@@ -480,17 +397,8 @@ mod tests {
         }
         assert_eq!(soup.strand_copies(), 1);
         assert_eq!(soup.strand_count(), 2);
-        assert_eq!(
-            soup.nucleotide_count(),
-            4,
-            "six of the ten nucleotides were used"
-        );
-        assert!(
-            soup.molecules
-                .iter()
-                .filter_map(|m| m.strand_sequence())
-                .all(|s| s.len() == 6)
-        );
+        assert_eq!(soup.nucleotide_count(), 4, "six of the ten nucleotides were used");
+        assert!(soup.molecules.iter().filter_map(|m| m.strand_sequence()).all(|s| s.len() == 6));
     }
 
     #[test]
@@ -506,11 +414,7 @@ mod tests {
         for _ in 0..5_000 {
             soup.replicate();
         }
-        assert_eq!(
-            soup.strand_copies(),
-            0,
-            "nucleotides out of reach cannot be used"
-        );
+        assert_eq!(soup.strand_copies(), 0, "nucleotides out of reach cannot be used");
     }
 
     #[test]
@@ -529,26 +433,13 @@ mod tests {
         assert!(decay_probability(&fit, 0.5, true) < decay_probability(&fit, 0.5, false));
         let long = Molecule::strand("GGUCAUGCGGUCAUGC".into());
         assert!(decay_probability(&long, 0.5, false) > 0.0);
-        assert_eq!(
-            decay_probability(&Molecule::nucleotide('A'), 1.0, false),
-            0.0
-        );
+        assert_eq!(decay_probability(&Molecule::nucleotide('A'), 1.0, false), 0.0);
         assert_eq!(decay_probability(&Molecule::water(), 1.0, false), 0.0);
     }
 
     #[test]
     fn unfit_strands_vanish_and_are_counted() {
-        let mut soup = soup_with(
-            (0..30)
-                .map(|k| {
-                    at(
-                        Molecule::strand("AAAAAAAA".into()),
-                        10.0 + k as f64 * 12.0,
-                        290.0,
-                    )
-                })
-                .collect(),
-        );
+        let mut soup = soup_with((0..30).map(|k| at(Molecule::strand("AAAAAAAA".into()), 10.0 + k as f64 * 12.0, 290.0)).collect());
         soup.set_environment(Environment::default());
         for _ in 0..8_000 {
             soup.decay();
@@ -559,16 +450,11 @@ mod tests {
 
     #[test]
     fn lipids_clump_together() {
-        let mut soup = soup_with(vec![
-            at(Molecule::lipid(), 100.0, 290.0),
-            at(Molecule::lipid(), 160.0, 290.0),
-        ]);
+        let mut soup = soup_with(vec![at(Molecule::lipid(), 100.0, 290.0), at(Molecule::lipid(), 160.0, 290.0)]);
         for _ in 0..200 {
             soup.gather_lipids();
         }
-        let gap = soup.molecules[0]
-            .position
-            .distance_to(&soup.molecules[1].position);
+        let gap = soup.molecules[0].position.distance_to(&soup.molecules[1].position);
         assert!(gap < 20.0, "lipids ended {gap} apart");
     }
 
@@ -576,24 +462,13 @@ mod tests {
     fn a_busy_soup_keeps_its_caps_and_stays_in_bounds() {
         let mut soup = PrimordialSoup::with_seed(400.0, 300.0, 300.0, 7.0, 33);
         soup.add_prebiotic_chemistry();
-        soup.set_environment(Environment::preset(
-            crate::environment::Preset::Both,
-            300.0,
-            7.0,
-        ));
+        soup.set_environment(Environment::preset(crate::environment::Preset::Both, 300.0, 7.0));
         for _ in 0..6_000 {
             soup.simulate_step();
-            assert!(
-                soup.strand_count() <= MAX_STRANDS && soup.longest_strand() <= MAX_STRAND_LENGTH
-            );
+            assert!(soup.strand_count() <= MAX_STRANDS && soup.longest_strand() <= MAX_STRAND_LENGTH);
             assert!(soup.nucleotide_count() <= MAX_FREE_NUCLEOTIDES + START_NUCLEOTIDES);
         }
-        assert!(soup.molecules.iter().all(
-            |m| (0.0..=400.0).contains(&m.position.x) && (0.0..=300.0).contains(&m.position.y)
-        ));
-        assert!(
-            soup.strands_formed() > 0,
-            "a long dry-and-wet run should make strands"
-        );
+        assert!(soup.molecules.iter().all(|m| (0.0..=400.0).contains(&m.position.x) && (0.0..=300.0).contains(&m.position.y)));
+        assert!(soup.strands_formed() > 0, "a long dry-and-wet run should make strands");
     }
 }

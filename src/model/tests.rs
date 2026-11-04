@@ -22,10 +22,7 @@ fn chain_has_four_backbone_atoms_per_residue() {
     let m = chain("MET");
     assert_eq!(m.name(), "AA3");
     assert_eq!(m.atoms.len(), 12);
-    assert_eq!(
-        m.composition(),
-        vec![("C", 3), ("N", 3), ("O", 3), ("H", 3)]
-    );
+    assert_eq!(m.composition(), vec![("C", 3), ("N", 3), ("O", 3), ("H", 3)]);
 }
 
 #[test]
@@ -47,33 +44,9 @@ fn random_chain_respects_length_and_alphabet() {
 fn mutations_change_length_as_expected() {
     let mut r = rng();
     let m = chain("METHINKS");
-    assert_eq!(
-        m.mutate_substitution(&mut r)
-            .unwrap()
-            .0
-            .sequence()
-            .unwrap()
-            .len(),
-        8
-    );
-    assert_eq!(
-        m.mutate_insertion(&mut r)
-            .unwrap()
-            .0
-            .sequence()
-            .unwrap()
-            .len(),
-        9
-    );
-    assert_eq!(
-        m.mutate_deletion(&mut r)
-            .unwrap()
-            .0
-            .sequence()
-            .unwrap()
-            .len(),
-        7
-    );
+    assert_eq!(m.mutate_substitution(&mut r).unwrap().0.sequence().unwrap().len(), 8);
+    assert_eq!(m.mutate_insertion(&mut r).unwrap().0.sequence().unwrap().len(), 9);
+    assert_eq!(m.mutate_deletion(&mut r).unwrap().0.sequence().unwrap().len(), 7);
     assert!(chain("M").mutate_deletion(&mut r).is_none());
 }
 
@@ -83,22 +56,16 @@ fn mutations_report_the_exact_edit() {
     let parent = chain("METHINKS");
     for _ in 0..50 {
         let (c, m) = parent.mutate_substitution(&mut r).unwrap();
-        let Mutation::Substitution { index, from, to } = m else {
-            panic!("wrong kind")
-        };
+        let Mutation::Substitution { index, from, to } = m else { panic!("wrong kind") };
         assert_eq!(parent.sequence().unwrap().chars().nth(index), Some(from));
         assert_eq!(c.sequence().unwrap().chars().nth(index), Some(to));
 
         let (c, m) = parent.mutate_insertion(&mut r).unwrap();
-        let Mutation::Insertion { index, residue } = m else {
-            panic!("wrong kind")
-        };
+        let Mutation::Insertion { index, residue } = m else { panic!("wrong kind") };
         assert_eq!(c.sequence().unwrap().chars().nth(index), Some(residue));
 
         let (c, m) = parent.mutate_deletion(&mut r).unwrap();
-        let Mutation::Deletion { index, residue } = m else {
-            panic!("wrong kind")
-        };
+        let Mutation::Deletion { index, residue } = m else { panic!("wrong kind") };
         assert_eq!(parent.sequence().unwrap().chars().nth(index), Some(residue));
         assert_eq!(c.sequence().unwrap().len(), 7);
     }
@@ -149,8 +116,5 @@ fn crossover_combine_and_degrade() {
 
 #[test]
 fn distance() {
-    assert_eq!(
-        Position::new(0.0, 0.0).distance_to(&Position::new(3.0, 4.0)),
-        5.0
-    );
+    assert_eq!(Position::new(0.0, 0.0).distance_to(&Position::new(3.0, 4.0)), 5.0);
 }

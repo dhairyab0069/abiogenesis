@@ -5,25 +5,15 @@ fn leaflets_face_the_right_way_and_tails_meet_in_the_middle() {
     let r = 40.0;
     let s = bilayer_spec(r);
     let glyphs = bilayer(r);
-    assert!(
-        glyphs.iter().any(|g| g.leaflet == Leaflet::Outer)
-            && glyphs.iter().any(|g| g.leaflet == Leaflet::Inner)
-    );
+    assert!(glyphs.iter().any(|g| g.leaflet == Leaflet::Outer) && glyphs.iter().any(|g| g.leaflet == Leaflet::Inner));
     for g in &glyphs {
         let head = g.head.len();
         for (base, end) in g.tails {
             // a tail runs from the head toward the middle plane
-            assert!(
-                (end.len() - s.mid).abs() < s.head_radius * 0.2,
-                "tail ends at the middle"
-            );
+            assert!((end.len() - s.mid).abs() < s.head_radius * 0.2, "tail ends at the middle");
             match g.leaflet {
-                Leaflet::Outer => {
-                    assert!(head > s.mid && base.len() > end.len() && head > base.len())
-                }
-                Leaflet::Inner => {
-                    assert!(head < s.mid && base.len() < end.len() && head < base.len())
-                }
+                Leaflet::Outer => assert!(head > s.mid && base.len() > end.len() && head > base.len()),
+                Leaflet::Inner => assert!(head < s.mid && base.len() < end.len() && head < base.len()),
             }
         }
         // the head sits on the ray from the centre at the glyph's angle
@@ -52,11 +42,7 @@ fn rings_are_evenly_spread_and_capped() {
         assert_eq!(g.len(), glyph_total(r));
         assert!(inner <= outer.len(), "the inner ring is the smaller one");
         let step = TAU / outer.len() as f32;
-        assert!(
-            outer
-                .windows(2)
-                .all(|w| (w[1].angle - w[0].angle - step).abs() < 1e-4)
-        );
+        assert!(outer.windows(2).all(|w| (w[1].angle - w[0].angle - step).abs() < 1e-4));
     }
 }
 
@@ -105,10 +91,7 @@ fn circles_meet_at_two_points_on_both() {
     }
     assert!((a.x - b.x).abs() < 1e-3 && a.y * b.y < 0.0);
     assert!(circle_intersection(Pt::new(0.0, 0.0), 10.0, Pt::new(30.0, 0.0), 8.0).is_none());
-    assert!(
-        circle_intersection(Pt::new(0.0, 0.0), 10.0, Pt::new(1.0, 0.0), 2.0).is_none(),
-        "one inside the other"
-    );
+    assert!(circle_intersection(Pt::new(0.0, 0.0), 10.0, Pt::new(1.0, 0.0), 2.0).is_none(), "one inside the other");
 }
 
 #[test]
@@ -134,19 +117,13 @@ fn the_arc_grows_closes_and_only_then_fills() {
     assert_eq!(fill_alpha(1.0), 1.0);
     assert_eq!(inner_alpha(0.4), 0.0);
     assert_eq!(inner_alpha(0.75), 1.0);
-    assert!(
-        curl(0.0) > 1.5 && (curl(0.7) - 1.0).abs() < 1e-6,
-        "the sheet curls shut"
-    );
+    assert!(curl(0.0) > 1.5 && (curl(0.7) - 1.0).abs() < 1e-6, "the sheet curls shut");
 }
 
 #[test]
 fn each_lipid_travels_from_where_it_was_to_its_place_and_turns_outward() {
     let glyphs = bilayer(30.0);
-    let outer: Vec<Glyph> = glyphs
-        .into_iter()
-        .filter(|g| g.leaflet == Leaflet::Outer)
-        .collect();
+    let outer: Vec<Glyph> = glyphs.into_iter().filter(|g| g.leaflet == Leaflet::Outer).collect();
     let n = outer.len();
     let start = Pt::new(-50.0, 20.0);
     for i in [0, n / 2, n - 1] {
@@ -154,10 +131,7 @@ fn each_lipid_travels_from_where_it_was_to_its_place_and_turns_outward() {
         assert!(at0.pos.dist(start) < 1e-4, "starts where the lipid was");
         let end = outer_pose(i, n, start, 7, &outer[i], 1.0);
         assert!(end.pos.dist(outer[i].head) < 1e-3, "ends on the ring");
-        assert!(
-            turn(end.angle, outer[i].angle).abs() < 1e-3,
-            "head faces outward"
-        );
+        assert!(turn(end.angle, outer[i].angle).abs() < 1e-3, "head faces outward");
         // halfway to its arrival it is between the two
         let t = arrival(i, n) / 2.0;
         let mid = outer_pose(i, n, start, 7, &outer[i], t);
@@ -198,10 +172,7 @@ fn a_dividing_cell_elongates_pinches_and_splits() {
         last_neck = neck;
     }
     assert_eq!(last_neck, 0.0, "it ends split in two");
-    assert!(
-        neck_width(a0, r1, b0, r2) > 2.0 * r2 - 1.0,
-        "no waist at first"
-    );
+    assert!(neck_width(a0, r1, b0, r2) > 2.0 * r2 - 1.0, "no waist at first");
 }
 
 #[test]
@@ -221,17 +192,12 @@ fn the_cup_reaches_round_closes_and_the_guest_becomes_a_mitochondrion() {
             closed_seen = true;
             assert!((c.span - TAU).abs() < 1e-4, "closed means a full ring");
         } else {
-            assert!(
-                c.shrunk == 0.0,
-                "the guest shrinks only after the cup closes"
-            );
+            assert!(c.shrunk == 0.0, "the guest shrinks only after the cup closes");
         }
     }
     assert!(closed_seen);
     let end = cup(ENGULF_STEPS - 0.01, guest, 14.0, slot, mito_r).unwrap();
-    assert!(
-        end.guest.dist(slot) < 0.2 && (end.guest_radius - mito_r).abs() < 0.1 && end.shrunk > 0.99
-    );
+    assert!(end.guest.dist(slot) < 0.2 && (end.guest_radius - mito_r).abs() < 0.1 && end.shrunk > 0.99);
 }
 
 #[test]
@@ -241,10 +207,7 @@ fn contents_fit_inside_the_membrane() {
         assert!(nucleus_radius(r) < s.inner_edge, "nucleus fits");
         for i in 0..3 {
             let (p, len) = mito_slot(i, r);
-            assert!(
-                p.len() + len < s.inner_edge + 1.0,
-                "mitochondrion {i} fits at radius {r}"
-            );
+            assert!(p.len() + len < s.inner_edge + 1.0, "mitochondrion {i} fits at radius {r}");
         }
     }
 }

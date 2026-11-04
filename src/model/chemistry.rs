@@ -55,28 +55,18 @@ fn balance(x: f64) -> f64 {
 
 impl Molecule {
     pub fn lipid() -> Self {
-        let atoms = std::iter::repeat_n(CARBON, 16)
-            .chain([OXYGEN, OXYGEN])
-            .chain(std::iter::repeat_n(HYDROGEN, 32))
-            .collect();
+        let atoms = std::iter::repeat_n(CARBON, 16).chain([OXYGEN, OXYGEN]).chain(std::iter::repeat_n(HYDROGEN, 32)).collect();
         Self::from_kind(Kind::Lipid, 1.2, atoms)
     }
 
     /// A free nucleotide. `base` should be one of [`BASES`].
     pub fn nucleotide(base: char) -> Self {
-        Self::from_kind(
-            Kind::Nucleotide(base),
-            1.0,
-            vec![CARBON, NITROGEN, OXYGEN, PHOSPHORUS],
-        )
+        Self::from_kind(Kind::Nucleotide(base), 1.0, vec![CARBON, NITROGEN, OXYGEN, PHOSPHORUS])
     }
 
     /// A strand with the given bases, with energy 1 + 0.1 per base like a chain.
     pub fn strand(sequence: String) -> Self {
-        let atoms = sequence
-            .chars()
-            .flat_map(|_| [CARBON, NITROGEN, OXYGEN, PHOSPHORUS])
-            .collect();
+        let atoms = sequence.chars().flat_map(|_| [CARBON, NITROGEN, OXYGEN, PHOSPHORUS]).collect();
         let energy = 1.0 + sequence.len() as f64 * 0.1;
         Self::from_kind(Kind::Strand(sequence), energy, atoms)
     }
@@ -132,13 +122,9 @@ impl Molecule {
             Kind::Simple(_) | Kind::Nucleotide(_) => 0.5,
             Kind::Lipid => 0.8,
             Kind::AminoAcid(seq) if seq.is_empty() => 0.0,
-            Kind::AminoAcid(seq) => balance(
-                seq.chars().filter(|c| HYDROPHOBIC.contains(*c)).count() as f64 / seq.len() as f64,
-            ),
+            Kind::AminoAcid(seq) => balance(seq.chars().filter(|c| HYDROPHOBIC.contains(*c)).count() as f64 / seq.len() as f64),
             Kind::Strand(seq) => {
-                let Some(gc) = self.gc_fraction() else {
-                    return 0.0;
-                };
+                let Some(gc) = self.gc_fraction() else { return 0.0 };
                 let length = (seq.len() as f64 / STABLE_LENGTH).min(1.0);
                 let motif = if self.is_catalyst() { 0.2 } else { 0.0 };
                 (0.8 * balance(gc) * length + motif).clamp(0.0, 1.0)
@@ -189,12 +175,7 @@ mod tests {
             Molecule::amino_acid(String::new(), 1.0),
         ];
         for m in all {
-            assert!(
-                (0.0..=1.0).contains(&m.fitness()),
-                "{} has fitness {}",
-                m.name(),
-                m.fitness()
-            );
+            assert!((0.0..=1.0).contains(&m.fitness()), "{} has fitness {}", m.name(), m.fitness());
         }
     }
 
@@ -208,9 +189,7 @@ mod tests {
 
     #[test]
     fn short_strands_are_less_fit_than_long_ones() {
-        assert!(
-            Molecule::strand("GA".into()).fitness() < Molecule::strand("GAUCAUGC".into()).fitness()
-        );
+        assert!(Molecule::strand("GA".into()).fitness() < Molecule::strand("GAUCAUGC".into()).fitness());
     }
 
     #[test]

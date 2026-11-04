@@ -23,14 +23,9 @@ impl EditKind {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Motion {
     /// Growing in. `elapsed` starts negative: the tile is hidden until it reaches 0.
-    Growing {
-        elapsed: f32,
-    },
+    Growing { elapsed: f32 },
     Settled,
-    Editing {
-        kind: EditKind,
-        elapsed: f32,
-    },
+    Editing { kind: EditKind, elapsed: f32 },
 }
 
 /// Which parent of a recombination a tile came from.
@@ -56,12 +51,7 @@ pub struct Tile {
 
 impl Tile {
     pub(super) fn settled(letter: char) -> Self {
-        Self {
-            letter,
-            previous: None,
-            origin: Origin::None,
-            motion: Motion::Settled,
-        }
+        Self { letter, previous: None, origin: Origin::None, motion: Motion::Settled }
     }
 
     /// The letter to draw now: a substituted tile shows the old letter first.
@@ -77,14 +67,10 @@ impl Tile {
         match self.motion {
             Motion::Settled => 1.0,
             Motion::Growing { elapsed } => ease_out((elapsed / GROW_SECONDS).clamp(0.0, 1.0)),
-            Motion::Editing {
-                kind: EditKind::Deletion,
-                elapsed,
-            } => 1.0 - ease_out((elapsed / SHRINK_SECONDS).clamp(0.0, 1.0)),
-            Motion::Editing {
-                kind: EditKind::Insertion,
-                elapsed,
-            } => {
+            Motion::Editing { kind: EditKind::Deletion, elapsed } => {
+                1.0 - ease_out((elapsed / SHRINK_SECONDS).clamp(0.0, 1.0))
+            }
+            Motion::Editing { kind: EditKind::Insertion, elapsed } => {
                 let t = (elapsed / FLASH_SECONDS).clamp(0.0, 1.0);
                 // Rises past full size, then settles back.
                 ease_out((t * 2.0).min(1.0)) * (1.0 + 0.25 * (std::f32::consts::PI * t).sin())
@@ -96,9 +82,7 @@ impl Tile {
     /// The edit colour to blend in and how strongly (1 at the start, fading to 0).
     pub fn flash(&self) -> Option<(EditKind, f32)> {
         match self.motion {
-            Motion::Editing { kind, elapsed } => {
-                Some((kind, (1.0 - elapsed / kind.seconds()).clamp(0.0, 1.0)))
-            }
+            Motion::Editing { kind, elapsed } => Some((kind, (1.0 - elapsed / kind.seconds()).clamp(0.0, 1.0))),
             _ => None,
         }
     }
@@ -109,35 +93,21 @@ impl Tile {
     }
 
     pub(super) fn is_shrinking(&self) -> bool {
-        matches!(
-            self.motion,
-            Motion::Editing {
-                kind: EditKind::Deletion,
-                ..
-            }
-        )
+        matches!(self.motion, Motion::Editing { kind: EditKind::Deletion, .. })
     }
 
     /// Moves this tile's animation forward by `dt` seconds, clamping at the end.
     pub(super) fn advance(&mut self, dt: f32) {
         self.motion = match self.motion {
             Motion::Growing { elapsed } if elapsed + dt >= GROW_SECONDS => Motion::Settled,
-            Motion::Growing { elapsed } => Motion::Growing {
-                elapsed: elapsed + dt,
-            },
+            Motion::Growing { elapsed } => Motion::Growing { elapsed: elapsed + dt },
             Motion::Editing { kind, elapsed } if elapsed + dt >= kind.seconds() => {
                 if kind != EditKind::Deletion {
                     self.previous = None;
                 }
-                Motion::Editing {
-                    kind,
-                    elapsed: kind.seconds(),
-                }
+                Motion::Editing { kind, elapsed: kind.seconds() }
             }
-            Motion::Editing { kind, elapsed } => Motion::Editing {
-                kind,
-                elapsed: elapsed + dt,
-            },
+            Motion::Editing { kind, elapsed } => Motion::Editing { kind, elapsed: elapsed + dt },
             Motion::Settled => Motion::Settled,
         };
         // A finished flash or pop is just a settled tile again.

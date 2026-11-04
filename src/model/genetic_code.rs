@@ -62,13 +62,7 @@ impl ReadingFrame {
     pub fn protein(&self) -> String {
         self.codons
             .iter()
-            .filter_map(|(_, c)| {
-                if let Codon::Amino(a) = c {
-                    Some(*a)
-                } else {
-                    None
-                }
-            })
+            .filter_map(|(_, c)| if let Codon::Amino(a) = c { Some(*a) } else { None })
             .collect()
     }
 
@@ -112,16 +106,7 @@ mod tests {
 
     #[test]
     fn known_codons_match_the_textbook() {
-        for (codon, expected) in [
-            ("UUU", 'F'),
-            ("UUA", 'L'),
-            ("GCU", 'A'),
-            ("UGG", 'W'),
-            ("GGG", 'G'),
-            ("AAA", 'K'),
-            ("GAU", 'D'),
-            ("CGC", 'R'),
-        ] {
+        for (codon, expected) in [("UUU", 'F'), ("UUA", 'L'), ("GCU", 'A'), ("UGG", 'W'), ("GGG", 'G'), ("AAA", 'K'), ("GAU", 'D'), ("CGC", 'R')] {
             assert_eq!(read_codon(codon), Some(Codon::Amino(expected)), "{codon}");
         }
         for stop in ["UAA", "UAG", "UGA"] {
@@ -133,25 +118,12 @@ mod tests {
     fn the_table_has_three_stops_and_all_twenty_amino_acids() {
         let all: Vec<String> = ORDER
             .iter()
-            .flat_map(|a| {
-                ORDER
-                    .iter()
-                    .flat_map(move |b| ORDER.iter().map(move |c| format!("{a}{b}{c}")))
-            })
+            .flat_map(|a| ORDER.iter().flat_map(move |b| ORDER.iter().map(move |c| format!("{a}{b}{c}"))))
             .collect();
         assert_eq!(all.len(), 64);
         let meanings: Vec<Codon> = all.iter().map(|c| read_codon(c).unwrap()).collect();
         assert_eq!(meanings.iter().filter(|m| **m == Codon::Stop).count(), 3);
-        let mut aminos: Vec<char> = meanings
-            .iter()
-            .filter_map(|m| {
-                if let Codon::Amino(a) = m {
-                    Some(*a)
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let mut aminos: Vec<char> = meanings.iter().filter_map(|m| if let Codon::Amino(a) = m { Some(*a) } else { None }).collect();
         aminos.sort_unstable();
         aminos.dedup();
         assert_eq!(aminos.len(), 20);
@@ -185,10 +157,7 @@ mod tests {
     fn a_gene_with_no_stop_runs_to_the_end_of_the_strand() {
         let frame = reading_frame("AUGGCUUU").unwrap();
         assert_eq!(frame.protein(), "MA");
-        assert!(
-            !frame.is_closed(),
-            "the last two bases are not a whole codon"
-        );
+        assert!(!frame.is_closed(), "the last two bases are not a whole codon");
         assert_eq!(translate("AUGGCUUU"), Some("MA".into()));
     }
 

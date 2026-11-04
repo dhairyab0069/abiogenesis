@@ -18,10 +18,7 @@
 //!   third is 40% of the way. That lets the drawing animate one bond at a time
 //!   with no per-bead state.
 
-use crate::model::{
-    Codon, MAX_PROTEIN_GENE_BASES, ReadingFrame, complement_strand, protein_fitness, reading_frame,
-    translate,
-};
+use crate::model::{Codon, MAX_PROTEIN_GENE_BASES, ReadingFrame, complement_strand, protein_fitness, reading_frame, translate};
 use rand::Rng;
 
 /// Seconds a bead takes to join the strand.
@@ -60,15 +57,7 @@ pub enum Phase {
 }
 
 impl Phase {
-    pub const ALL: [Phase; 7] = [
-        Phase::Assemble,
-        Phase::Pair,
-        Phase::Twist,
-        Phase::Unzip,
-        Phase::Translate,
-        Phase::Fold,
-        Phase::Rest,
-    ];
+    pub const ALL: [Phase; 7] = [Phase::Assemble, Phase::Pair, Phase::Twist, Phase::Unzip, Phase::Translate, Phase::Fold, Phase::Rest];
 
     pub fn title(self) -> &'static str {
         match self {
@@ -85,19 +74,11 @@ impl Phase {
     pub fn caption(self) -> &'static str {
         match self {
             Phase::Assemble => "Free nucleotides drift in and bond to the strand, one at a time.",
-            Phase::Pair => {
-                "Each base attracts its partner. Hydrogen bonds hold the pairs: two for A with U (or T), three for C with G."
-            }
+            Phase::Pair => "Each base attracts its partner. Hydrogen bonds hold the pairs: two for A with U (or T), three for C with G.",
             Phase::Twist => "The paired strands twist into a double helix.",
-            Phase::Unzip => {
-                "The helix unzips: now there are two strands, the original and its complement."
-            }
-            Phase::Translate => {
-                "A ribosome slides along the strand to the start codon AUG, then reads three bases at a time. Each codon names an amino acid."
-            }
-            Phase::Fold => {
-                "At the stop codon the chain is released and folds into a compact coil. Its shape decides what it can do."
-            }
+            Phase::Unzip => "The helix unzips: now there are two strands, the original and its complement.",
+            Phase::Translate => "A ribosome slides along the strand to the start codon AUG, then reads three bases at a time. Each codon names an amino acid.",
+            Phase::Fold => "At the stop codon the chain is released and folds into a compact coil. Its shape decides what it can do.",
             Phase::Rest => "That protein can help the strand that made it copy itself faster.",
         }
     }
@@ -156,16 +137,7 @@ impl Formation {
     pub fn with_gene(gene: &str) -> Option<Self> {
         let frame = reading_frame(gene)?;
         let protein = translate(gene)?;
-        Some(Self {
-            gene: gene.to_string(),
-            copy: complement_strand(gene),
-            frame,
-            protein,
-            dna: false,
-            paused: false,
-            speed: 1.0,
-            time: 0.0,
-        })
+        Some(Self { gene: gene.to_string(), copy: complement_strand(gene), frame, protein, dna: false, paused: false, speed: 1.0, time: 0.0 })
     }
 
     pub fn gene(&self) -> &str {
@@ -212,12 +184,7 @@ impl Formation {
     pub fn set_gene(&mut self, gene: &str) -> bool {
         match Self::with_gene(gene) {
             Some(next) => {
-                *self = Self {
-                    dna: self.dna,
-                    paused: self.paused,
-                    speed: self.speed,
-                    ..next
-                };
+                *self = Self { dna: self.dna, paused: self.paused, speed: self.speed, ..next };
                 true
             }
             None => false,
@@ -227,8 +194,7 @@ impl Formation {
     /// Seconds each phase lasts for this gene, in order.
     pub fn durations(&self) -> [(Phase, f32); 7] {
         let n = self.gene.len() as f32;
-        let read =
-            self.frame.start as f32 * SCAN_TIME + self.frame.codons.len() as f32 * CODON_TIME;
+        let read = self.frame.start as f32 * SCAN_TIME + self.frame.codons.len() as f32 * CODON_TIME;
         [
             (Phase::Assemble, n * JOIN_TIME),
             (Phase::Pair, n * DOCK_TIME),
@@ -269,11 +235,7 @@ impl Formation {
     /// The letter to draw for `base` during `phase`: T for U in DNA mode, except
     /// while reading, when the ribosome sees messenger RNA.
     pub fn shown(&self, phase: Phase, base: char) -> char {
-        if self.dna && base == 'U' && phase < Phase::Translate {
-            'T'
-        } else {
-            base
-        }
+        if self.dna && base == 'U' && phase < Phase::Translate { 'T' } else { base }
     }
 
     /// The partner of `base` in the chosen spelling, as drawn: A pairs with U or T.
@@ -311,32 +273,14 @@ impl Formation {
         let (phase, progress) = self.locate_at(time);
         let n = self.gene.len() as f32;
         let before = |p: Phase| phase > p;
-        let joined = if before(Phase::Assemble) {
-            n
-        } else if phase == Phase::Assemble {
-            n * progress
-        } else {
-            0.0
-        };
-        let docked = if before(Phase::Pair) {
-            n
-        } else if phase == Phase::Pair {
-            n * progress
-        } else {
-            0.0
-        };
+        let joined = if before(Phase::Assemble) { n } else if phase == Phase::Assemble { n * progress } else { 0.0 };
+        let docked = if before(Phase::Pair) { n } else if phase == Phase::Pair { n * progress } else { 0.0 };
         let twist = match phase {
             Phase::Twist => progress,
             Phase::Unzip => 1.0 - progress * 0.8,
             _ => 0.0,
         };
-        let unzipped = if before(Phase::Unzip) {
-            n
-        } else if phase == Phase::Unzip {
-            n * progress
-        } else {
-            0.0
-        };
+        let unzipped = if before(Phase::Unzip) { n } else if phase == Phase::Unzip { n * progress } else { 0.0 };
 
         let reads = self.frame.codons.len() as f32;
         let (ribosome_at, codons_read) = if phase == Phase::Translate {
@@ -354,35 +298,16 @@ impl Formation {
             (0.0, 0.0)
         };
         let whole = (codons_read.floor() as usize).min(self.frame.codons.len());
-        let amino_acids = self.frame.codons[..whole]
-            .iter()
-            .filter(|(_, c)| matches!(c, Codon::Amino(_)))
-            .count();
-        let reading = phase == Phase::Translate
-            && codons_read < reads
-            && (codons_read > 0.0 || ribosome_at >= self.frame.start as f32);
+        let amino_acids = self.frame.codons[..whole].iter().filter(|(_, c)| matches!(c, Codon::Amino(_))).count();
+        let reading = phase == Phase::Translate && codons_read < reads && (codons_read > 0.0 || ribosome_at >= self.frame.start as f32);
         let codon = reading.then(|| self.frame.codons[whole].clone());
-        let released =
-            before(Phase::Translate) || (phase == Phase::Translate && codons_read >= reads);
+        let released = before(Phase::Translate) || (phase == Phase::Translate && codons_read >= reads);
         let fold = match phase {
             Phase::Fold => progress,
             Phase::Rest => 1.0,
             _ => 0.0,
         };
-        Snapshot {
-            phase,
-            progress,
-            joined,
-            docked,
-            twist,
-            unzipped,
-            ribosome_at,
-            codons_read,
-            amino_acids,
-            codon,
-            released,
-            fold,
-        }
+        Snapshot { phase, progress, joined, docked, twist, unzipped, ribosome_at, codons_read, amino_acids, codon, released, fold }
     }
 }
 
@@ -419,9 +344,7 @@ pub fn amino_name(letter: char) -> &'static str {
 pub fn random_gene(rng: &mut impl Rng) -> String {
     const BASES: [char; 4] = ['A', 'C', 'G', 'U'];
     loop {
-        let mut gene: String = (0..rng.random_range(0..=3))
-            .map(|_| BASES[rng.random_range(0..4)])
-            .collect();
+        let mut gene: String = (0..rng.random_range(0..=3)).map(|_| BASES[rng.random_range(0..4)]).collect();
         let lead = gene.len();
         gene.push_str("AUG");
         for _ in 0..rng.random_range(2..=5) {
@@ -437,10 +360,7 @@ pub fn random_gene(rng: &mut impl Rng) -> String {
         let room = MAX_PROTEIN_GENE_BASES.saturating_sub(gene.len()).min(3);
         gene.extend((0..rng.random_range(0..=room)).map(|_| BASES[rng.random_range(0..4)]));
         // A random lead could contain AUG by chance; keep only genes that start where we meant.
-        if gene.len() <= MAX_PROTEIN_GENE_BASES
-            && reading_frame(&gene).is_some_and(|f| f.start == lead)
-            && translate(&gene).is_some()
-        {
+        if gene.len() <= MAX_PROTEIN_GENE_BASES && reading_frame(&gene).is_some_and(|f| f.start == lead) && translate(&gene).is_some() {
             return gene;
         }
     }

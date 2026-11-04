@@ -1,12 +1,10 @@
 //! The molecule simulation screen: a live soup, its statistics and its canvas.
 
+use super::fps::Fps;
 use super::cell_draw::{cell_tooltip, draw_cells};
 use super::cell_inspector::inspector;
-use super::fps::Fps;
-use super::molecule_draw::{
-    CATALYST_COLOR, LIPID_COLOR, base_color, molecule_color, molecule_size, tooltip_text,
-};
 use super::sparkline::sparkline;
+use super::molecule_draw::{CATALYST_COLOR, LIPID_COLOR, base_color, molecule_color, molecule_size, tooltip_text};
 use super::{Screen, back_button};
 use crate::environment::{Environment, Preset};
 use crate::events::LineageRow;
@@ -124,30 +122,14 @@ impl SoupView {
 
     /// Hands the chosen preset and base conditions to the soup.
     fn apply_environment(&mut self) {
-        self.soup.set_environment(Environment::preset(
-            self.preset,
-            self.base_temperature,
-            self.base_ph,
-        ));
+        self.soup.set_environment(Environment::preset(self.preset, self.base_temperature, self.base_ph));
     }
 
     /// Starts a fresh soup, keeping the current canvas size and environment choice.
     fn reset(&mut self) {
         let (w, h) = (self.soup.width(), self.soup.height());
-        let (preset, temperature, ph, speed, demo) = (
-            self.preset,
-            self.base_temperature,
-            self.base_ph,
-            self.speed,
-            self.demo_cells,
-        );
-        *self = Self {
-            preset,
-            base_temperature: temperature,
-            base_ph: ph,
-            speed,
-            ..Self::fresh(demo)
-        };
+        let (preset, temperature, ph, speed, demo) = (self.preset, self.base_temperature, self.base_ph, self.speed, self.demo_cells);
+        *self = Self { preset, base_temperature: temperature, base_ph: ph, speed, ..Self::fresh(demo) };
         self.soup.resize(w, h);
         self.apply_environment();
     }
@@ -157,18 +139,13 @@ impl SoupView {
         self.fps.frame();
         let next = self.controls_ui(ui);
 
-        egui::Panel::right("stats")
-            .resizable(false)
-            .exact_size(220.0)
-            .show(ui, |ui| {
-                self.stats_ui(ui);
-            });
+        egui::Panel::right("stats").resizable(false).exact_size(220.0).show(ui, |ui| {
+            self.stats_ui(ui);
+        });
 
-        egui::CentralPanel::default()
-            .frame(egui::Frame::new().fill(SOUP_BG))
-            .show(ui, |ui| {
-                self.canvas_ui(ui);
-            });
+        egui::CentralPanel::default().frame(egui::Frame::new().fill(SOUP_BG)).show(ui, |ui| {
+            self.canvas_ui(ui);
+        });
 
         if self.running {
             ui.ctx().request_repaint();
@@ -187,26 +164,16 @@ impl SoupView {
                     next = Some(Screen::Menu);
                 }
                 ui.separator();
-                if ui
-                    .button(if self.running { "Pause" } else { "Resume" })
-                    .clicked()
-                {
+                if ui.button(if self.running { "Pause" } else { "Resume" }).clicked() {
                     self.running = !self.running;
                 }
-                if ui
-                    .add_enabled(!self.running, egui::Button::new("Step"))
-                    .clicked()
-                {
+                if ui.add_enabled(!self.running, egui::Button::new("Step")).clicked() {
                     self.step();
                 }
                 if ui.button("Reset").clicked() {
                     self.reset();
                 }
-                ui.add(
-                    egui::Slider::new(&mut self.speed, 1.0..=MAX_SPEED)
-                        .suffix("x")
-                        .text("Speed"),
-                );
+                ui.add(egui::Slider::new(&mut self.speed, 1.0..=MAX_SPEED).suffix("x").text("Speed"));
             });
             self.environment_ui(ui);
         });
@@ -218,25 +185,13 @@ impl SoupView {
         let mut changed = false;
         ui.horizontal_wrapped(|ui| {
             ui.label("Environment");
-            egui::ComboBox::from_id_salt("preset")
-                .selected_text(self.preset.label())
-                .show_ui(ui, |ui| {
-                    for p in Preset::ALL {
-                        changed |= ui
-                            .selectable_value(&mut self.preset, p, p.label())
-                            .changed();
-                    }
-                });
-            changed |= ui
-                .add(
-                    egui::Slider::new(&mut self.base_temperature, 250.0..=420.0)
-                        .suffix(" K")
-                        .text("Temperature"),
-                )
-                .changed();
-            changed |= ui
-                .add(egui::Slider::new(&mut self.base_ph, 1.0..=13.0).text("pH"))
-                .changed();
+            egui::ComboBox::from_id_salt("preset").selected_text(self.preset.label()).show_ui(ui, |ui| {
+                for p in Preset::ALL {
+                    changed |= ui.selectable_value(&mut self.preset, p, p.label()).changed();
+                }
+            });
+            changed |= ui.add(egui::Slider::new(&mut self.base_temperature, 250.0..=420.0).suffix(" K").text("Temperature")).changed();
+            changed |= ui.add(egui::Slider::new(&mut self.base_ph, 1.0..=13.0).text("pH")).changed();
         });
         if changed {
             self.apply_environment();
@@ -248,42 +203,27 @@ impl SoupView {
                 s.temperature,
                 s.ph,
                 s.wetness * 100.0,
-                if s.protocells.is_empty() {
-                    String::new()
-                } else {
-                    format!(", {} protocell(s)", s.protocells.len())
-                },
+                if s.protocells.is_empty() { String::new() } else { format!(", {} protocell(s)", s.protocells.len()) },
             ));
         });
     }
 
     fn stats_ui(&self, ui: &mut egui::Ui) {
-        egui::ScrollArea::vertical()
-            .id_salt("side")
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                ui.heading("Statistics");
-                self.stats_grid(ui);
-                ui.add_space(8.0);
-                egui::CollapsingHeader::new("Charts")
-                    .default_open(true)
-                    .show(ui, |ui| self.charts_ui(ui));
-                egui::CollapsingHeader::new("Cell events")
-                    .default_open(self.demo_cells)
-                    .show(ui, |ui| self.cell_events_ui(ui));
-                egui::CollapsingHeader::new("Protein lineage")
-                    .default_open(false)
-                    .show(ui, |ui| self.lineage_ui(ui));
-                egui::CollapsingHeader::new("Molecule counts")
-                    .default_open(false)
-                    .show(ui, |ui| {
-                        for (name, count) in self.soup.counts() {
-                            ui.label(format!("{name}: {count}"));
-                        }
-                    });
-                ui.add_space(8.0);
-                self.sightings_ui(ui);
+        egui::ScrollArea::vertical().id_salt("side").auto_shrink([false, false]).show(ui, |ui| {
+            ui.heading("Statistics");
+            self.stats_grid(ui);
+            ui.add_space(8.0);
+            egui::CollapsingHeader::new("Charts").default_open(true).show(ui, |ui| self.charts_ui(ui));
+            egui::CollapsingHeader::new("Cell events").default_open(self.demo_cells).show(ui, |ui| self.cell_events_ui(ui));
+            egui::CollapsingHeader::new("Protein lineage").default_open(false).show(ui, |ui| self.lineage_ui(ui));
+            egui::CollapsingHeader::new("Molecule counts").default_open(false).show(ui, |ui| {
+                for (name, count) in self.soup.counts() {
+                    ui.label(format!("{name}: {count}"));
+                }
             });
+            ui.add_space(8.0);
+            self.sightings_ui(ui);
+        });
     }
 
     /// One sparkline per recorded number (sampled twice a second).
@@ -296,18 +236,8 @@ impl SoupView {
         for (k, metric) in CHARTS.iter().enumerate() {
             let hue = (k as f32 * 0.17 + 0.05).fract();
             let color: Color32 = egui::ecolor::Hsva::new(hue, 0.55, 0.95, 1.0).into();
-            let decimals = if matches!(metric, Metric::StrandFitness | Metric::Wetness) {
-                2
-            } else {
-                0
-            };
-            sparkline(
-                ui,
-                metric.label(),
-                &history.series(*metric),
-                color,
-                decimals,
-            );
+            let decimals = if matches!(metric, Metric::StrandFitness | Metric::Wetness) { 2 } else { 0 };
+            sparkline(ui, metric.label(), &history.series(*metric), color, decimals);
         }
     }
 
@@ -329,104 +259,47 @@ impl SoupView {
         }
         ui.weak("one row per chain: id, how, step, sequence");
         for row in &self.lineage {
-            let text = format!(
-                "{}#{} {} @{} {}",
-                "  ".repeat(row.depth.min(6)),
-                row.id,
-                row.how,
-                row.step,
-                row.sequence
-            );
+            let text = format!("{}#{} {} @{} {}", "  ".repeat(row.depth.min(6)), row.id, row.how, row.step, row.sequence);
             ui.monospace(text);
         }
     }
 
     fn stats_grid(&self, ui: &mut egui::Ui) {
-        egui::Grid::new("stats_grid")
-            .num_columns(2)
-            .striped(true)
-            .show(ui, |ui| {
-                let mut row = |k: &str, v: String| {
-                    ui.label(k);
-                    ui.label(v);
-                    ui.end_row();
-                };
-                row("FPS", format!("{:.1}", self.fps.value));
-                row("Step", self.steps.to_string());
-                row("Molecules", self.soup.molecules.len().to_string());
-                row("Chains", self.soup.amino_acid_count().to_string());
-                row("Temperature", format!("{:.1} K", self.soup.temperature));
-                row("pH", format!("{:.1}", self.soup.ph));
-                row("Pool", format!("{:.0}% full", self.soup.wetness * 100.0));
-                row("Protocells", self.soup.protocells.len().to_string());
-                row("In droplets", self.soup.chains_in_protocells().to_string());
-                row(
-                    "Formed / burst",
-                    format!(
-                        "{} / {}",
-                        self.soup.protocells_formed(),
-                        self.soup.protocells_burst()
-                    ),
-                );
-                row("Nucleotides", self.soup.nucleotide_count().to_string());
-                row(
-                    "RNA strands",
-                    format!(
-                        "{} ({} catalysts)",
-                        self.soup.strand_count(),
-                        self.soup.catalyst_count()
-                    ),
-                );
-                row("Longest strand", self.soup.longest_strand().to_string());
-                row(
-                    "Strand fitness",
-                    format!("{:.2}", self.soup.mean_strand_fitness()),
-                );
-                row(
-                    "Copied / decayed",
-                    format!(
-                        "{} / {}",
-                        self.soup.strand_copies(),
-                        self.soup.strands_decayed()
-                    ),
-                );
-                row("Genes", format!("{} strands", self.soup.gene_count()));
-                row("Proteins made", self.soup.proteins_made().to_string());
-                row(
-                    "Protein fitness",
-                    format!("{:.2}", self.soup.mean_protein_fitness()),
-                );
-                row(
-                    "Cells",
-                    format!(
-                        "{} ({} eukaryotes)",
-                        self.soup.cell_count(),
-                        self.soup.eukaryote_count()
-                    ),
-                );
-                row("Mitochondria", self.soup.mitochondria_total().to_string());
-                row(
-                    "Colonies",
-                    format!(
-                        "{} (largest {})",
-                        self.soup.colony_count(),
-                        self.soup.largest_colony()
-                    ),
-                );
-                row(
-                    "Cell fitness",
-                    format!("{:.2}", self.soup.mean_cell_fitness()),
-                );
-                let cs = self.soup.cell_stats();
-                row(
-                    "Divided / died",
-                    format!("{} / {}", cs.divisions, cs.deaths),
-                );
-                row("Swallowed", cs.engulfments.to_string());
-                row("Lipids", self.soup.lipid_count().to_string());
-                row("Reactions", self.soup.total_reactions().to_string());
-                row("This step", self.soup.reactions_this_step().to_string());
-            });
+        egui::Grid::new("stats_grid").num_columns(2).striped(true).show(ui, |ui| {
+            let mut row = |k: &str, v: String| {
+                ui.label(k);
+                ui.label(v);
+                ui.end_row();
+            };
+            row("FPS", format!("{:.1}", self.fps.value));
+            row("Step", self.steps.to_string());
+            row("Molecules", self.soup.molecules.len().to_string());
+            row("Chains", self.soup.amino_acid_count().to_string());
+            row("Temperature", format!("{:.1} K", self.soup.temperature));
+            row("pH", format!("{:.1}", self.soup.ph));
+            row("Pool", format!("{:.0}% full", self.soup.wetness * 100.0));
+            row("Protocells", self.soup.protocells.len().to_string());
+            row("In droplets", self.soup.chains_in_protocells().to_string());
+            row("Formed / burst", format!("{} / {}", self.soup.protocells_formed(), self.soup.protocells_burst()));
+            row("Nucleotides", self.soup.nucleotide_count().to_string());
+            row("RNA strands", format!("{} ({} catalysts)", self.soup.strand_count(), self.soup.catalyst_count()));
+            row("Longest strand", self.soup.longest_strand().to_string());
+            row("Strand fitness", format!("{:.2}", self.soup.mean_strand_fitness()));
+            row("Copied / decayed", format!("{} / {}", self.soup.strand_copies(), self.soup.strands_decayed()));
+            row("Genes", format!("{} strands", self.soup.gene_count()));
+            row("Proteins made", self.soup.proteins_made().to_string());
+            row("Protein fitness", format!("{:.2}", self.soup.mean_protein_fitness()));
+            row("Cells", format!("{} ({} eukaryotes)", self.soup.cell_count(), self.soup.eukaryote_count()));
+            row("Mitochondria", self.soup.mitochondria_total().to_string());
+            row("Colonies", format!("{} (largest {})", self.soup.colony_count(), self.soup.largest_colony()));
+            row("Cell fitness", format!("{:.2}", self.soup.mean_cell_fitness()));
+            let cs = self.soup.cell_stats();
+            row("Divided / died", format!("{} / {}", cs.divisions, cs.deaths));
+            row("Swallowed", cs.engulfments.to_string());
+            row("Lipids", self.soup.lipid_count().to_string());
+            row("Reactions", self.soup.total_reactions().to_string());
+            row("This step", self.soup.reactions_this_step().to_string());
+        });
     }
 
     /// The log of steps where the target pattern first appeared in a sequence.
@@ -435,14 +308,11 @@ impl SoupView {
         if self.log.is_empty() {
             ui.weak("none yet");
         }
-        egui::ScrollArea::vertical()
-            .id_salt("log")
-            .stick_to_bottom(true)
-            .show(ui, |ui| {
-                for line in &self.log {
-                    ui.monospace(line);
-                }
-            });
+        egui::ScrollArea::vertical().id_salt("log").stick_to_bottom(true).show(ui, |ui| {
+            for line in &self.log {
+                ui.monospace(line);
+            }
+        });
     }
 
     fn canvas_ui(&mut self, ui: &mut egui::Ui) {
@@ -452,16 +322,9 @@ impl SoupView {
 
         // the pool: everything below the water line
         let line = rect.top() + self.soup.water_line() as f32;
-        painter.rect_filled(
-            egui::Rect::from_min_max(Pos2::new(rect.left(), line), rect.right_bottom()),
-            0.0,
-            WATER,
-        );
+        painter.rect_filled(egui::Rect::from_min_max(Pos2::new(rect.left(), line), rect.right_bottom()), 0.0, WATER);
         if line > rect.top() {
-            painter.line_segment(
-                [Pos2::new(rect.left(), line), Pos2::new(rect.right(), line)],
-                Stroke::new(1.5, SURFACE),
-            );
+            painter.line_segment([Pos2::new(rect.left(), line), Pos2::new(rect.right(), line)], Stroke::new(1.5, SURFACE));
         }
         for p in &self.soup.protocells {
             let center = Pos2::new(rect.left() + p.x as f32, rect.top() + p.y as f32);
@@ -491,10 +354,7 @@ impl SoupView {
 
         let hovered_cell = response.hover_pos().and_then(|p| {
             let at = (p - rect.min).to_pos2();
-            self.soup
-                .cells
-                .iter()
-                .find(|c| c.contains(at.x as f64, at.y as f64))
+            self.soup.cells.iter().find(|c| c.contains(at.x as f64, at.y as f64))
         });
         if response.clicked() {
             self.selected = hovered_cell.map(|c| c.id);
@@ -503,30 +363,16 @@ impl SoupView {
         let hovered = response
             .hover_pos()
             .filter(|_| hovered_cell.is_none())
-            .and_then(|p| {
-                self.soup
-                    .molecules
-                    .iter()
-                    .find(|m| screen_pos(rect, m).distance(p) < molecule_size(m))
-            });
+            .and_then(|p| self.soup.molecules.iter().find(|m| screen_pos(rect, m).distance(p) < molecule_size(m)));
         if let Some(c) = hovered_cell {
             let text = cell_tooltip(c);
             response.on_hover_ui_at_pointer(|ui| {
                 ui.monospace(text);
             });
         } else if let Some(m) = hovered {
-            painter.circle_stroke(
-                screen_pos(rect, m),
-                molecule_size(m) * 0.7,
-                Stroke::new(1.0, Color32::WHITE),
-            );
+            painter.circle_stroke(screen_pos(rect, m), molecule_size(m) * 0.7, Stroke::new(1.0, Color32::WHITE));
             let mut text = tooltip_text(m);
-            if let Some(origin) = self
-                .soup
-                .events
-                .creation_of(m.id)
-                .filter(|_| m.is_amino_acid())
-            {
+            if let Some(origin) = self.soup.events.creation_of(m.id).filter(|_| m.is_amino_acid()) {
                 text += &format!("\n\nOrigin: {} at step {}", origin.event.how(), origin.step);
                 let ancestors = self.soup.events.ancestors(m.id).len();
                 if ancestors > 0 {
@@ -559,31 +405,17 @@ fn draw_strand(painter: &egui::Painter, center: Pos2, sequence: &str, catalyst: 
     let left = center.x - (shown.len() as f32 - 1.0) * SPACING / 2.0;
     if catalyst {
         let half = shown.len() as f32 * SPACING / 2.0 + 3.0;
-        painter.rect_filled(
-            egui::Rect::from_center_size(center, egui::vec2(half * 2.0, 10.0)),
-            5.0,
-            CATALYST_COLOR.gamma_multiply(0.25),
-        );
+        painter.rect_filled(egui::Rect::from_center_size(center, egui::vec2(half * 2.0, 10.0)), 5.0, CATALYST_COLOR.gamma_multiply(0.25));
     }
     for (k, base) in shown.iter().enumerate() {
-        painter.circle_filled(
-            Pos2::new(left + k as f32 * SPACING, center.y),
-            2.4,
-            base_color(*base),
-        );
+        painter.circle_filled(Pos2::new(left + k as f32 * SPACING, center.y), 2.4, base_color(*base));
     }
 }
 
 /// A lipid: a round head with two short tails.
 fn draw_lipid(painter: &egui::Painter, center: Pos2) {
     for dx in [-1.5, 1.5] {
-        painter.line_segment(
-            [
-                center + egui::vec2(dx, 2.0),
-                center + egui::vec2(dx * 1.6, 8.0),
-            ],
-            Stroke::new(1.2, LIPID_COLOR.gamma_multiply(0.7)),
-        );
+        painter.line_segment([center + egui::vec2(dx, 2.0), center + egui::vec2(dx * 1.6, 8.0)], Stroke::new(1.2, LIPID_COLOR.gamma_multiply(0.7)));
     }
     painter.circle_filled(center, 3.2, LIPID_COLOR);
 }
@@ -617,8 +449,5 @@ fn biggest_lineage(soup: &PrimordialSoup) -> Vec<LineageRow> {
 }
 
 fn screen_pos(rect: egui::Rect, m: &Molecule) -> Pos2 {
-    Pos2::new(
-        rect.left() + m.position.x as f32,
-        rect.top() + m.position.y as f32,
-    )
+    Pos2::new(rect.left() + m.position.x as f32, rect.top() + m.position.y as f32)
 }

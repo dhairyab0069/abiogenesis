@@ -40,24 +40,12 @@ pub struct Molecule {
 
 impl Molecule {
     pub fn new(name: &'static str, energy: f64, atoms: Vec<Atom>) -> Self {
-        Self {
-            id: 0,
-            kind: Kind::Simple(name),
-            energy,
-            atoms,
-            position: Position::default(),
-        }
+        Self { id: 0, kind: Kind::Simple(name), energy, atoms, position: Position::default() }
     }
 
     /// A molecule of the given kind with no position yet.
     pub(super) fn from_kind(kind: Kind, energy: f64, atoms: Vec<Atom>) -> Self {
-        Self {
-            id: 0,
-            kind,
-            energy,
-            atoms,
-            position: Position::default(),
-        }
+        Self { id: 0, kind, energy, atoms, position: Position::default() }
     }
 
     pub fn water() -> Self {
@@ -65,26 +53,13 @@ impl Molecule {
     }
 
     pub fn methane() -> Self {
-        Self::new(
-            "CH4",
-            1.5,
-            vec![CARBON, HYDROGEN, HYDROGEN, HYDROGEN, HYDROGEN],
-        )
+        Self::new("CH4", 1.5, vec![CARBON, HYDROGEN, HYDROGEN, HYDROGEN, HYDROGEN])
     }
 
     /// A chain with the given sequence. Each residue gets a simple C, N, O, H backbone.
     pub fn amino_acid(sequence: String, energy: f64) -> Self {
-        let atoms = sequence
-            .chars()
-            .flat_map(|_| [CARBON, NITROGEN, OXYGEN, HYDROGEN])
-            .collect();
-        Self {
-            id: 0,
-            kind: Kind::AminoAcid(sequence),
-            energy,
-            atoms,
-            position: Position::default(),
-        }
+        let atoms = sequence.chars().flat_map(|_| [CARBON, NITROGEN, OXYGEN, HYDROGEN]).collect();
+        Self { id: 0, kind: Kind::AminoAcid(sequence), energy, atoms, position: Position::default() }
     }
 
     /// A random chain of `min_len..=max_len` residues, with energy 1 + 0.1 per residue.
@@ -138,11 +113,9 @@ impl Molecule {
         }
     }
 
+
     pub(super) fn with_sequence(&self, sequence: String, energy: f64) -> Self {
-        Self {
-            position: self.position,
-            ..Self::amino_acid(sequence, energy)
-        }
+        Self { position: self.position, ..Self::amino_acid(sequence, energy) }
     }
 
     pub(super) fn seq_or_empty(&self) -> &str {

@@ -47,9 +47,5 @@ fn main() -> eframe::Result {
             .with_min_inner_size([480.0, 360.0]),
         ..Default::default()
     };
-    eframe::run_native(
-        "Abiogenesis Simulation",
-        options,
-        Box::new(move |_cc| Ok(Box::new(App::new(start)))),
-    )
+    eframe::run_native("Abiogenesis Simulation", options, Box::new(move |_cc| Ok(Box::new(App::new(start)))))
 }

@@ -84,53 +84,32 @@ fn back_button(ui: &mut egui::Ui) -> bool {
 
 fn menu(ui: &mut egui::Ui) -> Option<Screen> {
     let mut next = None;
-    egui::CentralPanel::default()
-        .frame(egui::Frame::new().fill(MENU_BG))
-        .show(ui, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.add_space((ui.available_height() / 2.0 - 90.0).max(20.0));
-                ui.heading(
-                    RichText::new("Abiogenesis Simulation")
-                        .size(26.0)
-                        .color(Color32::WHITE),
-                );
-                ui.add_space(24.0);
-                let size = Vec2::new(280.0, 40.0);
-                if ui
-                    .add_sized(size, egui::Button::new("Molecule Simulation"))
-                    .clicked()
-                {
-                    next = Some(Screen::Soup(Box::default()));
-                }
-                ui.add_space(12.0);
-                if ui
-                    .add_sized(size, egui::Button::new("Amino Acid Chain Simulation"))
-                    .clicked()
-                {
-                    next = Some(Screen::Chains(Box::default()));
-                }
-                ui.add_space(12.0);
-                if ui
-                    .add_sized(size, egui::Button::new("Genes and Proteins"))
-                    .clicked()
-                {
-                    next = Some(Screen::Formation(Box::default()));
-                }
-                ui.add_space(12.0);
-                if ui
-                    .add_sized(size, egui::Button::new("Cells and Colonies"))
-                    .clicked()
-                {
-                    next = Some(Screen::Soup(Box::new(SoupView::cells_demo())));
-                }
-                ui.add_space(12.0);
-                if ui
-                    .add_sized(size, egui::Button::new("Animals: from sea to land"))
-                    .clicked()
-                {
-                    next = Some(Screen::Animals(Box::default()));
-                }
-            });
+    egui::CentralPanel::default().frame(egui::Frame::new().fill(MENU_BG)).show(ui, |ui| {
+        ui.vertical_centered(|ui| {
+            ui.add_space((ui.available_height() / 2.0 - 90.0).max(20.0));
+            ui.heading(RichText::new("Abiogenesis Simulation").size(26.0).color(Color32::WHITE));
+            ui.add_space(24.0);
+            let size = Vec2::new(280.0, 40.0);
+            if ui.add_sized(size, egui::Button::new("Molecule Simulation")).clicked() {
+                next = Some(Screen::Soup(Box::default()));
+            }
+            ui.add_space(12.0);
+            if ui.add_sized(size, egui::Button::new("Amino Acid Chain Simulation")).clicked() {
+                next = Some(Screen::Chains(Box::default()));
+            }
+            ui.add_space(12.0);
+            if ui.add_sized(size, egui::Button::new("Genes and Proteins")).clicked() {
+                next = Some(Screen::Formation(Box::default()));
+            }
+            ui.add_space(12.0);
+            if ui.add_sized(size, egui::Button::new("Cells and Colonies")).clicked() {
+                next = Some(Screen::Soup(Box::new(SoupView::cells_demo())));
+            }
+            ui.add_space(12.0);
+            if ui.add_sized(size, egui::Button::new("Animals: from sea to land")).clicked() {
+                next = Some(Screen::Animals(Box::default()));
+            }
         });
+    });
     next
 }
