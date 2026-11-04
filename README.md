@@ -46,7 +46,7 @@ It is built in six stages. Stages 1 to 5 explain how the process works and how i
 plain terms, from molecules in a pool up to cells and multicellular life. Stage 6 is a scenario lab:
 set up conditions, pick natural or forced selection, and watch how a population evolves over time.
 
-**Where it is today:** stages 1 to 3 are done. Stages 4 to 6 are described in the
+**Where it is today:** stages 1 to 4 are done. Stages 5 and 6 are described in the
 [roadmap](#roadmap).
 
 ## Install
@@ -100,6 +100,7 @@ Optionally move it onto your `PATH`, for example
 abiogenesis              open the launcher menu
 abiogenesis molecules    open the molecule simulation directly
 abiogenesis chains       open the chain build-up view directly
+abiogenesis formation    open the genes and proteins scene directly
 abiogenesis --version
 ```
 
@@ -130,6 +131,32 @@ fewer chains and grows wider. Inside a droplet a strand falls apart half as fast
 twice as fast. The side panel shows nucleotides, strands, catalysts, the longest strand, the mean
 strand fitness and how many strands were copied and lost.
 
+**Genes and proteins (stage 4).** A strand that contains the start codon `AUG` carries a *gene*: read
+three bases at a time with the real genetic code, up to a stop codon, it spells a protein. Now and
+then such a strand makes its protein, which appears as a new amino acid chain next to it (3 times as
+often inside a protocell; a full soup only takes a new protein in place of its least fit chain, and
+only if the newcomer is fitter). And it pays back: a strand whose protein is fit copies itself up to
+twice as fast. Strands with a gene wear a small green dot, their tooltip shows the protein, and the
+side panel counts genes, proteins made and the mean protein fitness. Hover a chain that came from a
+gene to see where it was read from.
+
+**Charts and lineage (stage 4).** Every 30 steps the soup records a sample (strands, catalysts, mean
+strand fitness, proteins made, how many different strand sequences there are, temperature, pool level
+and protocells; the last 400 samples are kept). The side panel draws each as a small chart. The
+*Protein lineage* section lists the biggest family of protein chains: the protein read off a strand,
+then every chain that mutated or crossed over from it. (Strands themselves have no ids, so the lineage
+follows protein chains, which already have a full event log.)
+
+**The Genes and Proteins screen (stage 4).** An animated, looping scene, also reachable from the
+launcher: free nucleotides drift in and bond into a strand one at a time; the strand is copied by base
+pairing (A with U, C with G, drawn with two or three hydrogen-bond dashes), the pair twists into a
+double helix and unzips into two strands; then a ribosome slides along the strand to `AUG`, reads codons
+in threes while amino acid beads grow into a chain, releases it at the stop codon and the chain folds
+into a coil. The codon, its amino acid and the protein's fitness are shown. Buttons pause and restart
+it, set the speed, jump to a phase, switch between RNA (U) and DNA (T), or load a new random gene. The
+scene uses the same `complement_strand`, `reading_frame` and `translate` as the soup, so it always
+agrees with the simulation.
+
 **The chain build-up view.** Random amino acid chains appear one colored tile per residue, capped at 50.
 Chains mutate (a substitution flashes the changed tile, an insertion pops a new one in, a deletion shrinks
 one away) and recombine by crossover (the child briefly shows which part came from which parent). A legend
@@ -157,8 +184,8 @@ population stable while still letting patterns emerge.
   day and night), user controls, then a grid environment and protocells.
 - [x] **Stage 3, chemistry and emergence.** Lipids and nucleotides, polymerization rules,
   autocatalysis, self-replication, and a fitness for each molecule.
-- [ ] **Stage 4, visualization and metrics.** Live charts for molecular diversity, complexity,
-  replicators and the environment, plus a clearer view of chain generation and lineage.
+- [x] **Stage 4, visualization and metrics.** Proteins read off genes, an animated genes-and-proteins
+  scene, live charts for diversity, replicators and the environment, and a protein lineage.
 - [ ] **Stage 5, cells to complex life.** Protocells that grow and divide, then eukaryotes (one cell
   swallows another, which becomes the mitochondrion, and the DNA gets its own envelope, the nucleus),
   then cells that stay together and specialize into multicellular life.
@@ -191,6 +218,8 @@ src/
     mod.rs          App, Start, the launcher menu and screen switching
     soup_view.rs    molecule simulation screen: controls, statistics, canvas
     molecule_draw.rs  molecule size, colour and hover text
+    formation_view.rs  genes and proteins screen: draws a Formation snapshot
+    sparkline.rs    painter-drawn line charts for the side panel
     chains_view.rs  chain build-up screen: stepping the soup, controls, rows
     tiles.rs        chain build-up drawing: legend, rows of letter tiles, colours
     fps.rs          frames-per-second counter
@@ -208,12 +237,17 @@ src/
     recombination.rs  crossover of pairs of chains
     movement.rs     Brownian drift and resizing
     census.rs       counts and target-pattern matches
+    chemistry.rs    stage 3 chemistry: strands, copying, decay
+    protein.rs      genes read into proteins, the gene boost
+    history.rs      the sampled history behind the charts
   model/      atoms, molecules, amino acid chains
     atom.rs, position.rs  Atom and its elements, Position
     molecule.rs     Kind and Molecule: constructors and queries
     editing.rs      combine, degrade, mutation and crossover
+    genetic_code.rs the standard codon table, reading frames, translate
     sequence.rs     the amino acid alphabet and random sequences
-  events.rs       the chain event log
+  formation/  egui-free timeline of the genes and proteins scene (phases, snapshots, random genes)
+  events.rs       the chain event log and protein lineage
   environment.rs  temperature, pH and wetness, optionally cycling
 docs/
   phase1_features.md   what stage 1 does, in detail
