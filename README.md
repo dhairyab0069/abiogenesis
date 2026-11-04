@@ -144,10 +144,34 @@ platforms and attaches them to a GitHub release.
 src/
   main.rs     entry point and command-line arguments
   lib.rs      module list
-  app.rs      the egui GUI: launcher, molecule simulation, chain build-up view
-  chain_view.rs  egui-free view-model for the build-up animation
-  soup.rs     PrimordialSoup, the simulation environment
-  model.rs    atoms, molecules, amino acid chains, mutation and crossover
+  app/        the egui GUI
+    mod.rs          App, Start, the launcher menu and screen switching
+    soup_view.rs    molecule simulation screen: controls, statistics, canvas
+    molecule_draw.rs  molecule size, colour and hover text
+    chains_view.rs  chain build-up screen: stepping the soup, controls, rows
+    tiles.rs        chain build-up drawing: legend, rows of letter tiles, colours
+    fps.rs          frames-per-second counter
+  chain_view/ egui-free view-model for the build-up animation
+    mod.rs          ChainView: sync, advance, rows
+    apply.rs        turns logged events into row changes
+    row.rs          Row: one chain on screen
+    tile.rs         Tile, its motion and animation
+    timing.rs       animation durations and the row cap
+    hue.rs          residue colours
+  soup/       PrimordialSoup, the simulation environment
+    mod.rs          the struct, construction, simulate_step
+    generation.rs   seed chains and new chains
+    mutation.rs     substitution, insertion and deletion
+    recombination.rs  crossover of pairs of chains
+    movement.rs     Brownian drift and resizing
+    census.rs       counts and target-pattern matches
+  model/      atoms, molecules, amino acid chains
+    atom.rs, position.rs  Atom and its elements, Position
+    molecule.rs     Kind and Molecule: constructors and queries
+    editing.rs      combine, degrade, mutation and crossover
+    sequence.rs     the amino acid alphabet and random sequences
+  events.rs       the chain event log
+  environment.rs  temperature, pH and wetness, optionally cycling
 docs/
   phase1_features.md   what stage 1 does, in detail
 Cargo.toml    dependencies (eframe, rand) and release profile
