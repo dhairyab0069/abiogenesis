@@ -1,5 +1,6 @@
 //! Atoms, molecules and amino acid chains.
 
+use crate::events::{ChainId, Mutation};
 use rand::Rng;
 
 /// The 20 standard amino acids, by single-letter code.
@@ -51,6 +52,9 @@ pub enum Kind {
 /// A molecule: a name (or sequence), an energy, its atoms and a position in the soup.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Molecule {
+    /// Which chain this is in the event log. Only the soup hands out real ids;
+    /// constructors leave it 0, and it means nothing for small molecules.
+    pub id: ChainId,
     pub kind: Kind,
     pub energy: f64,
     pub atoms: Vec<Atom>,
@@ -59,7 +63,7 @@ pub struct Molecule {
 
 impl Molecule {
     pub fn new(name: &'static str, energy: f64, atoms: Vec<Atom>) -> Self {
-        Self { kind: Kind::Simple(name), energy, atoms, position: Position::default() }
+        Self { id: 0, kind: Kind::Simple(name), energy, atoms, position: Position::default() }
     }
 
     pub fn water() -> Self {
@@ -73,7 +77,7 @@ impl Molecule {
     /// A chain with the given sequence. Each residue gets a simple C, N, O, H backbone.
     pub fn amino_acid(sequence: String, energy: f64) -> Self {
         let atoms = sequence.chars().flat_map(|_| [CARBON, NITROGEN, OXYGEN, HYDROGEN]).collect();
-        Self { kind: Kind::AminoAcid(sequence), energy, atoms, position: Position::default() }
+        Self { id: 0, kind: Kind::AminoAcid(sequence), energy, atoms, position: Position::default() }
     }
 
     /// A random chain of `min_len..=max_len` residues, with energy 1 + 0.1 per residue.
@@ -159,47 +163,59 @@ impl Molecule {
         DEGRADATION_RATE * (1.0 + self.seq_or_empty().len() as f64 * 0.05)
     }
 
-    /// Replaces one random residue with a random amino acid.
-    pub fn mutate_substitution(&self, rng: &mut impl Rng) -> Molecule {
+    /// Replaces one random residue with a random amino acid. Returns the child and
+    /// the edit, or None (with no randomness used) for an empty chain.
+    ///
+    /// Edge cases return `None` rather than a clone with a fake edit: "nothing
+    /// happened" is then impossible to mistake for a mutation in the event log.
+    pub fn mutate_substitution(&self, rng: &mut impl Rng) -> Option<(Molecule, Mutation)> {
         let mut chars: Vec<char> = self.seq_or_empty().chars().collect();
         if chars.is_empty() {
-            return self.clone();
+            return None;
         }
         let pos = rng.random_range(0..chars.len());
-        chars[pos] = random_amino_acid(rng);
-        self.with_sequence(chars.into_iter().collect(), self.energy)
+        let from = chars[pos];
+        let to = random_amino_acid(rng);
+        chars[pos] = to;
+        let child = self.with_sequence(chars.into_iter().collect(), self.energy);
+        Some((child, Mutation::Substitution { index: pos, from, to }))
     }
 
-    /// Inserts a random amino acid at a random position.
-    pub fn mutate_insertion(&self, rng: &mut impl Rng) -> Molecule {
+    /// Inserts a random amino acid at a random position. Always makes an edit.
+    pub fn mutate_insertion(&self, rng: &mut impl Rng) -> Option<(Molecule, Mutation)> {
         let mut chars: Vec<char> = self.seq_or_empty().chars().collect();
         let pos = rng.random_range(0..=chars.len());
-        chars.insert(pos, random_amino_acid(rng));
-        self.with_sequence(chars.into_iter().collect(), self.energy)
+        let residue = random_amino_acid(rng);
+        chars.insert(pos, residue);
+        let child = self.with_sequence(chars.into_iter().collect(), self.energy);
+        Some((child, Mutation::Insertion { index: pos, residue }))
     }
 
-    /// Deletes one random residue, unless the chain is a single residue.
-    pub fn mutate_deletion(&self, rng: &mut impl Rng) -> Molecule {
+    /// Deletes one random residue. None (no randomness used) for a chain of one
+    /// residue or fewer, which is never shortened.
+    pub fn mutate_deletion(&self, rng: &mut impl Rng) -> Option<(Molecule, Mutation)> {
         let mut chars: Vec<char> = self.seq_or_empty().chars().collect();
         if chars.len() <= 1 {
-            return self.clone();
+            return None;
         }
         let pos = rng.random_range(0..chars.len());
-        chars.remove(pos);
-        self.with_sequence(chars.into_iter().collect(), self.energy)
+        let residue = chars.remove(pos);
+        let child = self.with_sequence(chars.into_iter().collect(), self.energy);
+        Some((child, Mutation::Deletion { index: pos, residue }))
     }
 
     /// Recombination: the start of this chain joined to the end of `other`, with
-    /// the parents' average energy.
-    pub fn crossover(&self, other: &Molecule, rng: &mut impl Rng) -> Molecule {
+    /// the parents' average energy. Also returns the cut points `(in self, in
+    /// other)`. None (no randomness used) if either parent has no residues.
+    pub fn crossover(&self, other: &Molecule, rng: &mut impl Rng) -> Option<(Molecule, (usize, usize))> {
         let (a, b) = (self.seq_or_empty(), other.seq_or_empty());
         if a.is_empty() || b.is_empty() {
-            return self.clone();
+            return None;
         }
         let p1 = rng.random_range(0..a.len());
         let p2 = rng.random_range(0..b.len());
         let sequence = format!("{}{}", &a[..p1], &b[p2..]);
-        Self::amino_acid(sequence, (self.energy + other.energy) / 2.0)
+        Some((Self::amino_acid(sequence, (self.energy + other.energy) / 2.0), (p1, p2)))
     }
 }
 
@@ -268,10 +284,47 @@ mod tests {
     fn mutations_change_length_as_expected() {
         let mut r = rng();
         let m = chain("METHINKS");
-        assert_eq!(m.mutate_substitution(&mut r).sequence().unwrap().len(), 8);
-        assert_eq!(m.mutate_insertion(&mut r).sequence().unwrap().len(), 9);
-        assert_eq!(m.mutate_deletion(&mut r).sequence().unwrap().len(), 7);
-        assert_eq!(chain("M").mutate_deletion(&mut r).sequence(), Some("M"));
+        assert_eq!(m.mutate_substitution(&mut r).unwrap().0.sequence().unwrap().len(), 8);
+        assert_eq!(m.mutate_insertion(&mut r).unwrap().0.sequence().unwrap().len(), 9);
+        assert_eq!(m.mutate_deletion(&mut r).unwrap().0.sequence().unwrap().len(), 7);
+        assert!(chain("M").mutate_deletion(&mut r).is_none());
+    }
+
+    #[test]
+    fn mutations_report_the_exact_edit() {
+        let mut r = rng();
+        let parent = chain("METHINKS");
+        for _ in 0..50 {
+            let (c, m) = parent.mutate_substitution(&mut r).unwrap();
+            let Mutation::Substitution { index, from, to } = m else { panic!("wrong kind") };
+            assert_eq!(parent.sequence().unwrap().chars().nth(index), Some(from));
+            assert_eq!(c.sequence().unwrap().chars().nth(index), Some(to));
+
+            let (c, m) = parent.mutate_insertion(&mut r).unwrap();
+            let Mutation::Insertion { index, residue } = m else { panic!("wrong kind") };
+            assert_eq!(c.sequence().unwrap().chars().nth(index), Some(residue));
+
+            let (c, m) = parent.mutate_deletion(&mut r).unwrap();
+            let Mutation::Deletion { index, residue } = m else { panic!("wrong kind") };
+            assert_eq!(parent.sequence().unwrap().chars().nth(index), Some(residue));
+            assert_eq!(c.sequence().unwrap().len(), 7);
+        }
+    }
+
+    #[test]
+    fn edge_cases_report_no_edit_and_use_no_randomness() {
+        let mut r = rng();
+        let mut untouched = rng();
+        let empty = chain("");
+        assert!(empty.mutate_substitution(&mut r).is_none());
+        assert!(empty.mutate_deletion(&mut r).is_none());
+        assert!(empty.crossover(&chain("AA"), &mut r).is_none());
+        assert!(chain("AA").crossover(&empty, &mut r).is_none());
+        assert_eq!(r.random::<u64>(), untouched.random::<u64>());
+        // Inserting into an empty chain is a real edit.
+        let (c, m) = empty.mutate_insertion(&mut r).unwrap();
+        assert_eq!(c.sequence().unwrap().len(), 1);
+        assert!(matches!(m, Mutation::Insertion { index: 0, .. }));
     }
 
     #[test]
@@ -279,7 +332,7 @@ mod tests {
         let mut r = rng();
         let mut m = chain("AAAA");
         m.position = Position::new(3.0, 4.0);
-        let mutated = m.mutate_insertion(&mut r);
+        let (mutated, _) = m.mutate_insertion(&mut r).unwrap();
         assert_eq!(mutated.position, m.position);
         assert_eq!(mutated.energy, m.energy);
     }
@@ -288,7 +341,8 @@ mod tests {
     fn crossover_combine_and_degrade() {
         let mut r = rng();
         let (a, b) = (chain("AAAA"), chain("CCCC"));
-        let child = a.crossover(&b, &mut r);
+        let (child, (p1, p2)) = a.crossover(&b, &mut r).unwrap();
+        assert_eq!(child.sequence().unwrap().len(), p1 + 4 - p2);
         let seq = child.sequence().unwrap();
         assert!(seq.trim_start_matches('A').chars().all(|c| c == 'C'));
         assert_eq!(child.energy, 2.0);

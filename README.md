@@ -1,35 +1,82 @@
-# Abiogenesis Simulation
+<h1 align="center">Abiogenesis</h1>
 
-This project simulates the process of abiogenesis(from a layman's perspective) - the process by which life arises from non-living matter. The simulation focuses on simple modeling chemical reactions, molecular interactions, and evolutionary processes in a primordial soup environment.
+<p align="center">
+  A small Rust simulation of how life could arise from non-living matter: molecules drifting in a<br>
+  primordial soup, amino acid chains forming, mutating and recombining, and (coming) populations<br>
+  evolving under natural and forced selection.
+</p>
+
+<p align="center">
+  <a href="https://github.com/dhairyab0069/abiogenesis/releases/latest"><b>⬇︎ Download the latest release</b></a>
+  &nbsp;·&nbsp; macOS (Apple Silicon and Intel), Linux and Windows &nbsp;·&nbsp; one self-contained binary
+</p>
+
+<!-- Hero GIF goes here once the chain visualization is done:
+<p align="center">
+  <img src="docs/hero.gif" width="720" alt="...">
+</p>
+-->
+
+<p align="center">
+  <a href="docs/phase1_features.md">Phase 1 details</a> &nbsp;·&nbsp;
+  <a href="https://github.com/dhairyab0069/abiogenesis/releases">All downloads</a>
+</p>
+
+---
+
+## Contents
+
+- [What it is](#what-it-is)
+- [Install](#install)
+- [Using Abiogenesis](#using-abiogenesis)
+- [How it works](#how-it-works)
+- [Roadmap](#roadmap)
+- [Building from source](#building-from-source)
+- [Project layout](#project-layout)
+- [Contributing](#contributing)
+
+## What it is
+
+Abiogenesis is a toy model, written from a layperson's point of view, of the step before biology:
+simple chemistry turning into things that copy and change. It is meant to be watched and played
+with, not to be a research-grade chemistry engine.
+
+It is built in stages. Stages 1 to 4 explain how the process works and how its parts interact, in
+plain terms. Stage 5 is a scenario lab: set up conditions, pick natural or forced selection, and
+watch how a population evolves over time.
+
+**Where it is today:** stage 1 is done. Stages 2 to 5 are in progress and are described in the
+[roadmap](#roadmap).
 
 ## Install
 
-Abiogenesis is a single self-contained binary. Nothing else to install: no Java, no runtime, no dependencies.
+Download the binary for your platform from the
+[latest release](https://github.com/dhairyab0069/abiogenesis/releases/latest). Nothing else is
+needed: no Java, no runtime, no dependencies.
 
-1. Download the binary for your platform from the [latest release](https://github.com/dhairyab0069/abiogenesis/releases/latest):
+| Platform | File |
+|---|---|
+| macOS (Apple Silicon) | `abiogenesis-macos-arm64` |
+| macOS (Intel) | `abiogenesis-macos-x86_64` |
+| Linux (x86_64) | `abiogenesis-linux-x86_64` |
+| Windows (x86_64) | `abiogenesis-windows-x86_64.exe` |
 
-   | Platform | File |
-   |---|---|
-   | macOS (Apple Silicon) | `abiogenesis-macos-arm64` |
-   | macOS (Intel) | `abiogenesis-macos-x86_64` |
-   | Linux (x86_64) | `abiogenesis-linux-x86_64` |
-   | Windows (x86_64) | `abiogenesis-windows-x86_64.exe` |
+**macOS and Linux:**
 
-2. Run it.
+```bash
+chmod +x abiogenesis-macos-arm64
+./abiogenesis-macos-arm64
+```
 
-   macOS / Linux:
-   ```bash
-   chmod +x abiogenesis-macos-arm64
-   ./abiogenesis-macos-arm64
-   ```
-   On macOS, a binary downloaded with a browser is quarantined. If it refuses to open, run
-   `xattr -d com.apple.quarantine abiogenesis-macos-arm64` once.
+A binary downloaded with a browser is quarantined on macOS. If it refuses to open, run
+`xattr -d com.apple.quarantine abiogenesis-macos-arm64` once.
 
-   Windows: double-click `abiogenesis-windows-x86_64.exe`.
+**Windows:** double-click `abiogenesis-windows-x86_64.exe`.
 
-Optionally move it onto your `PATH` (e.g. `mv abiogenesis-macos-arm64 /usr/local/bin/abiogenesis`).
+Optionally move it onto your `PATH`, for example
+`mv abiogenesis-macos-arm64 /usr/local/bin/abiogenesis`.
 
-### Usage
+## Using Abiogenesis
 
 ```text
 abiogenesis              open the launcher menu
@@ -38,83 +85,46 @@ abiogenesis chains       open the amino acid chain generator directly
 abiogenesis --version
 ```
 
-## Project Structure
+**The molecule simulation.** Water, methane and amino acid chains drift in a 2D soup with
+temperature-dependent Brownian motion. Hover a molecule for its sequence, length, energy and atomic
+composition. The side panel shows live stats (FPS, step, molecule counts, temperature, pH) and any
+sightings of the target pattern, with pause, single-step and reset controls.
 
-- `src/`
-  - `model.rs` - Atoms, positions, molecules and amino acid chains (mutation, crossover, ...)
-  - `soup.rs` - `PrimordialSoup`, the simulation environment with temperature-dependent motion
-  - `app.rs` - The GUI ([egui](https://github.com/emilk/egui)): launcher, molecule simulation with glow effects, chain generator
-  - `main.rs` - Entry point and command-line arguments
+**The chain generator.** Random amino acid chains appear at a slow, controlled rate, capped at 50.
+Chains mutate (substitution, insertion, deletion) and recombine by crossover. The simulation watches
+for the sequence `METHINKS` to emerge in the population.
 
-## Implementation Phases
+## How it works
 
-### ✅ Phase 1: Basic Simulation (Toy Model)
-- [x] Basic molecular structure representation
-- [x] Simple spatial positioning system
-- [x] Initial chemical reaction framework
-- [x] Temperature and pH environment parameters
-- [x] Basic GUI visualization
-- [x] Temperature-dependent Brownian motion
-- [x] Collision detection
-- [x] Energy-based molecule properties
-- [x] High frame rate animation (target 60 FPS)
-- [x] Mac M1/M2 compatibility
-- [x] Interactive tooltips for molecule details in GUI
-- [x] Main menu/launcher for simulation selection
-- [x] Amino acid chain simulation UI
-- [x] Random amino acid chain generation
-- [x] Pattern emergence tracking (e.g., "METHINKS")
-- [x] Mutation and combination mechanisms
+The code is a small layered app with a model-view split:
 
-### 🔄 Phase 2: Environmental Dynamics
-- [ ] User Controls
-- [ ] Grid-based environment implementation
-- [ ] Environmental cycles:
-  - [ ] Wet/dry cycles
-  - [ ] Temperature variations
-  - [ ] pH fluctuations
-- [ ] Compartmentalization:
-  - [ ] Protocell formation
-  - [ ] Membrane dynamics
-  - [ ] Internal/external environment interactions
+| Layer | Files | Responsibility |
+|---|---|---|
+| GUI | `src/app.rs` | Launcher, molecule and chain views, controls |
+| Simulation | `src/soup.rs` | The soup: generation, movement, mutation, recombination |
+| Model | `src/model.rs` | Atoms, positions, molecules, chains, and the mutation operators |
 
-### 🧬 Phase 3: Chemistry and Emergence
-- [ ] Advanced molecule types:
-  - [ ] Amino acids
-  - [ ] Lipids
-  - [ ] Nucleotides
-- [ ] Chemical processes:
-  - [ ] Polymerization rules
-  - [ ] Autocatalysis
-  - [ ] Self-replication mechanisms
-- [ ] Fitness functions:
-  - [ ] Stability metrics
-  - [ ] Replication efficiency
-  - [ ] Environmental adaptation
+Chains are generated up to a cap. A mutation always replaces the original chain, so mutating never
+loses a chain, and recombination only adds children while the soup is under the cap. That keeps the
+population stable while still letting patterns emerge.
 
-### 🔍 Phase 4: Visualization & Metrics
-- [ ] Enhanced visualization:
-  - [ ] Real-time molecule distribution
-  - [ ] Environmental state display
-  - [ ] Chemical reaction visualization
-- [ ] Metrics tracking:
-  - [ ] Molecular diversity
-  - [ ] Complexity measures
-  - [ ] Self-replicator population
-  - [ ] Environmental statistics
+## Roadmap
 
-### 🧠 Phase 5: Advanced Concepts
-- [ ] GARD model implementation
-- [ ] Information theory metrics:
-  - [ ] Entropy calculations
-  - [ ] Mutual information
-  - [ ] Information flow
-- [ ] Evolutionary dynamics:
-  - [ ] Population genetics
-  - [ ] Selection pressures
-  - [ ] Adaptation mechanisms
+- [x] **Stage 1, basic simulation.** Molecules, movement, collisions, temperature and pH, amino acid
+  chain generation, mutation and recombination, pattern tracking, interactive tooltips, launcher.
+- [ ] **Stage 2, environment.** Temperature, pH and wetness that cycle over time (wet/dry pools,
+  day and night), user controls, then a grid environment and protocells.
+- [ ] **Stage 3, chemistry and emergence.** Lipids and nucleotides, polymerization rules,
+  autocatalysis, self-replication, and a fitness for each molecule.
+- [ ] **Stage 4, visualization and metrics.** Live charts for molecular diversity, complexity,
+  replicators and the environment, plus a clearer view of chain generation and lineage.
+- [ ] **Stage 5, scenario lab.** Build a scenario, choose natural or forced selection, and watch
+  populations evolve over time. A small language model trained on protein sequences, written from
+  scratch in Rust, supplies the learned fitness and mutation prior.
 
-## Building from Source
+Stages 2 to 4 stay deliberately simple. Their job is to show people how it works.
+
+## Building from source
 
 Requires a [Rust toolchain](https://rustup.rs) (1.95+).
 
@@ -127,73 +137,21 @@ cargo build --release          # binary at target/release/abiogenesis
 Releases are built by GitHub Actions: pushing a tag like `v0.2.0` builds the binaries for all
 platforms and attaches them to a GitHub release.
 
-## Current Features (Phase 1 Complete)
+## Project layout
 
-- **Amino Acid Generation Only:**
-  - The simulation currently generates random amino acid chains in a 2D environment.
-  - Generation is capped (max 50 chains) and occurs at a slow, controlled rate.
-  - No degradation or reactions are active in this phase.
-  - **Population is now stably controlled:** Mutations always replace the original chain (no loss), and the cap is enforced only for generation and combination.
-
-- **Pattern Emergence Tracking:**
-  - The simulation tracks the appearance of specific amino acid sequences (e.g., "METHINKS") in the population.
-
-- **Mutation and Combination Mechanisms:**
-  - Amino acid chains can undergo mutation (substitution, insertion, deletion) and recombination (crossover), simulating evolutionary processes.
-  - **Mutation is robust:** Each mutation replaces the original chain, so the population remains stable.
-  - **Combination is limited:** Only a small number of new chains are created per step, and only if under the population cap.
-
-- **Main Menu / Launcher:**
-  - Users can select between the main simulation and the amino acid chain simulation UI from a launcher window.
-
-- **Amino Acid Chain Simulation UI:**
-  - Dedicated interface for generating and inspecting random amino acid chains.
-
-- **Visualization:**
-  - Native GUI (egui) displays molecules and amino acid chains as glowing colored circles.
-  - Color is based on chain length.
-  - Interactive tooltips show sequence, length, energy, and atomic composition.
-  - Live statistics (FPS, step, molecule counts, temperature, pH) and pattern sightings in a side panel, with pause, single-step and reset controls.
-  - Window resizing is supported, with molecule positions rescaled accordingly.
-
-- **Architecture:**
-  - Modular, layered, and MVC-inspired for easy extension.
-  - Codebase is ready for future phases (e.g., enabling reactions, degradation, environmental effects).
-
-- **Documentation:**
-  - Up-to-date README and detailed feature documentation in `docs/phase1_features.md`.
-
-## Next Steps
-- Enable molecule reactions and degradation in future phases.
-- Add environmental dynamics and evolutionary features.
-
----
-
-For more details, see `docs/phase1_features.md`.
+```
+src/
+  main.rs     entry point and command-line arguments
+  lib.rs      module list
+  app.rs      the egui GUI: launcher, molecule simulation, chain generator
+  soup.rs     PrimordialSoup, the simulation environment
+  model.rs    atoms, molecules, amino acid chains, mutation and crossover
+docs/
+  phase1_features.md   what stage 1 does, in detail
+Cargo.toml    dependencies (eframe, rand) and release profile
+```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## Project Architecture
-
-This project uses a **modular, layered architecture** with elements of the **MVC (Model-View-Controller) pattern**:
-
-- **Presentation Layer (View/UI):**
-  - `app.rs` (launcher, `SoupView`, `ChainsView`) handles user interaction and visualization.
-- **Business Logic Layer (Simulation):**
-  - Simulation logic (`soup.rs`, `PrimordialSoup`) manages the rules, state, and processes of the simulation.
-- **Data/Model Layer:**
-  - `model.rs` (`Atom`, `Molecule`, `Position`, chain generation) represents the core data structures and utilities.
-
-**Summary Table:**
-
-| Layer         | Package/Files                        | Responsibility                                 |
-|---------------|-------------------------------------|------------------------------------------------|
-| GUI           | src/app.rs                          | User interface, visualization, simulation selection |
-| Simulation    | src/soup.rs                         | Simulation logic for molecules/environment     |
-| Model         | src/model.rs                        | Data structures and utilities                  |
-| Build/Config  | Cargo.toml, .github/workflows/, docs/ | Build, release, documentation                |
-
-**Classification:**
-> The project is a **modular, layered application** with strong elements of the **MVC pattern**. This makes it robust, extensible, and easy to maintain or extend with new simulation types. 
+Contributions are welcome. Please open an issue first to discuss major changes, then send a pull
+request.
