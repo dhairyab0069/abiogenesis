@@ -81,7 +81,7 @@ Optionally move it onto your `PATH`, for example
 ```text
 abiogenesis              open the launcher menu
 abiogenesis molecules    open the molecule simulation directly
-abiogenesis chains       open the amino acid chain generator directly
+abiogenesis chains       open the chain build-up view directly
 abiogenesis --version
 ```
 
@@ -90,9 +90,10 @@ temperature-dependent Brownian motion. Hover a molecule for its sequence, length
 composition. The side panel shows live stats (FPS, step, molecule counts, temperature, pH) and any
 sightings of the target pattern, with pause, single-step and reset controls.
 
-**The chain generator.** Random amino acid chains appear at a slow, controlled rate, capped at 50.
-Chains mutate (substitution, insertion, deletion) and recombine by crossover. The simulation watches
-for the sequence `METHINKS` to emerge in the population.
+**The chain build-up view.** Random amino acid chains appear one colored tile per residue, capped at 50.
+Chains mutate (a substitution flashes the changed tile, an insertion pops a new one in, a deletion shrinks
+one away) and recombine by crossover (the child briefly shows which part came from which parent). A legend
+explains the colors, and there are pause, resume, single-step and reset controls.
 
 ## How it works
 
@@ -143,7 +144,8 @@ platforms and attaches them to a GitHub release.
 src/
   main.rs     entry point and command-line arguments
   lib.rs      module list
-  app.rs      the egui GUI: launcher, molecule simulation, chain generator
+  app.rs      the egui GUI: launcher, molecule simulation, chain build-up view
+  chain_view.rs  egui-free view-model for the build-up animation
   soup.rs     PrimordialSoup, the simulation environment
   model.rs    atoms, molecules, amino acid chains, mutation and crossover
 docs/

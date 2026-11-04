@@ -10,7 +10,7 @@ Usage: abiogenesis [molecules | chains]
 
   (none)      open the launcher menu
   molecules   open the molecule simulation directly
-  chains      open the amino acid chain generator directly
+  chains      open the chain build-up view directly
 
 Options:
   -h, --help     print this help
