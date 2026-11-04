@@ -3,6 +3,7 @@
 use super::fps::Fps;
 use super::molecule_draw::{molecule_color, molecule_size, tooltip_text};
 use super::{Screen, back_button};
+use crate::environment::{Environment, Preset};
 use crate::model::Molecule;
 use crate::soup::{PrimordialSoup, TARGET_PATTERN};
 use eframe::egui::{self, Color32, Pos2, Sense, Stroke};
@@ -11,6 +12,9 @@ use std::time::{Duration, Instant};
 
 const STEPS_PER_SECOND: f64 = 60.0;
 const SOUP_BG: Color32 = Color32::from_rgb(10, 10, 20);
+const WATER: Color32 = Color32::from_rgba_premultiplied(8, 22, 34, 50);
+const SURFACE: Color32 = Color32::from_rgb(70, 150, 200);
+const DROPLET: Color32 = Color32::from_rgb(230, 90, 190);
 
 pub struct SoupView {
     soup: PrimordialSoup,
@@ -21,6 +25,9 @@ pub struct SoupView {
     fps: Fps,
     seen_patterns: HashSet<String>,
     log: Vec<String>,
+    preset: Preset,
+    base_temperature: f64,
+    base_ph: f64,
 }
 
 impl Default for SoupView {
@@ -34,6 +41,9 @@ impl Default for SoupView {
             fps: Fps::default(),
             seen_patterns: HashSet::new(),
             log: Vec::new(),
+            preset: Preset::default(),
+            base_temperature: 300.0,
+            base_ph: 7.0,
         }
     }
 }
@@ -65,11 +75,18 @@ impl SoupView {
         }
     }
 
-    /// Starts a fresh soup, keeping the current canvas size.
+    /// Hands the chosen preset and base conditions to the soup.
+    fn apply_environment(&mut self) {
+        self.soup.set_environment(Environment::preset(self.preset, self.base_temperature, self.base_ph));
+    }
+
+    /// Starts a fresh soup, keeping the current canvas size and environment choice.
     fn reset(&mut self) {
         let (w, h) = (self.soup.width(), self.soup.height());
-        *self = Self::default();
+        let (preset, temperature, ph) = (self.preset, self.base_temperature, self.base_ph);
+        *self = Self { preset, base_temperature: temperature, base_ph: ph, ..Self::default() };
         self.soup.resize(w, h);
+        self.apply_environment();
     }
 
     pub(super) fn ui(&mut self, ui: &mut egui::Ui) -> Option<Screen> {
@@ -112,8 +129,37 @@ impl SoupView {
                     self.reset();
                 }
             });
+            self.environment_ui(ui);
         });
         next
+    }
+
+    /// The environment row: a preset, base temperature and pH, and what the soup feels right now.
+    fn environment_ui(&mut self, ui: &mut egui::Ui) {
+        let mut changed = false;
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Environment");
+            egui::ComboBox::from_id_salt("preset").selected_text(self.preset.label()).show_ui(ui, |ui| {
+                for p in Preset::ALL {
+                    changed |= ui.selectable_value(&mut self.preset, p, p.label()).changed();
+                }
+            });
+            changed |= ui.add(egui::Slider::new(&mut self.base_temperature, 250.0..=420.0).suffix(" K").text("Temperature")).changed();
+            changed |= ui.add(egui::Slider::new(&mut self.base_ph, 1.0..=13.0).text("pH")).changed();
+        });
+        if changed {
+            self.apply_environment();
+        }
+        ui.horizontal(|ui| {
+            let s = &self.soup;
+            ui.weak(format!(
+                "Now: {:.0} K, pH {:.1}, pool {:.0}% full{}",
+                s.temperature,
+                s.ph,
+                s.wetness * 100.0,
+                if s.protocells.is_empty() { String::new() } else { format!(", {} protocell(s)", s.protocells.len()) },
+            ));
+        });
     }
 
     fn stats_ui(&self, ui: &mut egui::Ui) {
@@ -143,6 +189,10 @@ impl SoupView {
             row("Chains", self.soup.amino_acid_count().to_string());
             row("Temperature", format!("{:.1} K", self.soup.temperature));
             row("pH", format!("{:.1}", self.soup.ph));
+            row("Pool", format!("{:.0}% full", self.soup.wetness * 100.0));
+            row("Protocells", self.soup.protocells.len().to_string());
+            row("In droplets", self.soup.chains_in_protocells().to_string());
+            row("Formed / burst", format!("{} / {}", self.soup.protocells_formed(), self.soup.protocells_burst()));
             row("Reactions", self.soup.total_reactions().to_string());
             row("This step", self.soup.reactions_this_step().to_string());
         });
@@ -165,6 +215,18 @@ impl SoupView {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::hover());
         let rect = response.rect;
         self.fit_to(rect);
+
+        // the pool: everything below the water line
+        let line = rect.top() + self.soup.water_line() as f32;
+        painter.rect_filled(egui::Rect::from_min_max(Pos2::new(rect.left(), line), rect.right_bottom()), 0.0, WATER);
+        if line > rect.top() {
+            painter.line_segment([Pos2::new(rect.left(), line), Pos2::new(rect.right(), line)], Stroke::new(1.5, SURFACE));
+        }
+        for p in &self.soup.protocells {
+            let center = Pos2::new(rect.left() + p.x as f32, rect.top() + p.y as f32);
+            painter.circle_filled(center, p.radius as f32, DROPLET.gamma_multiply(0.12));
+            painter.circle_stroke(center, p.radius as f32, Stroke::new(2.0, DROPLET));
+        }
 
         for m in &self.soup.molecules {
             let center = screen_pos(rect, m);

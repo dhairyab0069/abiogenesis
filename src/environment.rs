@@ -78,6 +78,55 @@ impl Environment {
     }
 }
 
+/// Steps in one day. The app runs 60 steps a second, so a day lasts 20 seconds.
+pub const DAY_STEPS: f64 = 1200.0;
+/// Steps in one wet/dry cycle of the pool (40 seconds in the app).
+pub const POOL_STEPS: f64 = 2400.0;
+
+/// Ready-made environments for the controls.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Preset {
+    /// Nothing changes: the stage 1 soup.
+    #[default]
+    Constant,
+    /// Warmer days, cooler nights, and a pH that swings the other way.
+    DayNight,
+    /// The pool dries out and refills.
+    WetDry,
+    /// Both at once.
+    Both,
+}
+
+impl Preset {
+    pub const ALL: [Preset; 4] = [Preset::Constant, Preset::DayNight, Preset::WetDry, Preset::Both];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Preset::Constant => "Constant",
+            Preset::DayNight => "Day and night",
+            Preset::WetDry => "Wet and dry pools",
+            Preset::Both => "Day and night + pools",
+        }
+    }
+}
+
+impl Environment {
+    /// A preset around the given base temperature (K) and pH. The pool starts
+    /// full, so a wet/dry run begins wet and dries out.
+    pub fn preset(preset: Preset, temperature: f64, ph: f64) -> Self {
+        let mut env = Self::constant(temperature, ph);
+        if matches!(preset, Preset::DayNight | Preset::Both) {
+            env.temperature_cycle = Some(Cycle::new(DAY_STEPS, 25.0));
+            env.ph_cycle = Some(Cycle { period: DAY_STEPS, amplitude: 0.6, phase: 0.5 });
+        }
+        if matches!(preset, Preset::WetDry | Preset::Both) {
+            env.base_wetness = 0.55;
+            env.wetness_cycle = Some(Cycle { period: POOL_STEPS, amplitude: 0.5, phase: 0.25 });
+        }
+        env
+    }
+}
+
 impl Default for Environment {
     /// 300 K, pH 7, fully wet: the standard soup.
     fn default() -> Self {
@@ -138,6 +187,35 @@ mod tests {
     #[test]
     fn zero_period_is_ignored_instead_of_dividing_by_zero() {
         assert_eq!(Cycle::new(0.0, 10.0).offset(5), 0.0);
+    }
+
+    #[test]
+    fn constant_preset_matches_constant_environment() {
+        assert_eq!(Environment::preset(Preset::Constant, 310.0, 6.5), Environment::constant(310.0, 6.5));
+    }
+
+    #[test]
+    fn day_night_swings_temperature_and_ph_in_opposite_directions() {
+        let env = Environment::preset(Preset::DayNight, 300.0, 7.0);
+        let (day, night) = (env.at((DAY_STEPS / 4.0) as u64), env.at((DAY_STEPS * 3.0 / 4.0) as u64));
+        assert!(day.temperature > 320.0 && night.temperature < 280.0);
+        assert!(day.ph < 6.6 && night.ph > 7.4);
+        assert_eq!(day.wetness, 1.0);
+    }
+
+    #[test]
+    fn wet_dry_pool_starts_full_and_dries_out() {
+        let env = Environment::preset(Preset::WetDry, 300.0, 7.0);
+        assert_eq!(env.at(0).wetness, 1.0);
+        let driest = env.at((POOL_STEPS / 2.0) as u64).wetness;
+        assert!(driest < 0.1, "driest point was {driest}");
+        assert_eq!(env.at(0).temperature, 300.0);
+    }
+
+    #[test]
+    fn both_combines_the_cycles() {
+        let env = Environment::preset(Preset::Both, 300.0, 7.0);
+        assert!(env.temperature_cycle.is_some() && env.ph_cycle.is_some() && env.wetness_cycle.is_some());
     }
 
     #[test]
