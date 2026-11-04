@@ -237,7 +237,7 @@ cargo test                     # run the tests
 cargo build --release          # binary at target/release/abiogenesis
 ```
 
-Releases are built by GitHub Actions: pushing a tag like `v0.3.0` builds the binaries for all
+Releases are built by GitHub Actions: pushing a tag like `v0.4.0` builds the binaries for all
 platforms and attaches them to a GitHub release.
 
 ## Project layout
