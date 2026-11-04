@@ -3,6 +3,7 @@
 //! where we watch for a target pattern ("METHINKS") to emerge.
 
 mod census;
+mod chemistry;
 mod generation;
 mod movement;
 mod mutation;
@@ -49,6 +50,12 @@ pub struct PrimordialSoup {
     protocells_formed: u64,
     protocells_burst: u64,
     next_protocell_id: u64,
+    /// Whether the stage 3 chemistry (nucleotides, strands, lipids) runs. Off for
+    /// a plain soup, so the stage 1 behaviour is exactly what it was.
+    chemistry: bool,
+    strands_formed: u64,
+    strand_copies: u64,
+    strands_decayed: u64,
     rng: StdRng,
 }
 
@@ -78,6 +85,10 @@ impl PrimordialSoup {
             protocells_formed: 0,
             protocells_burst: 0,
             next_protocell_id: 1,
+            chemistry: false,
+            strands_formed: 0,
+            strand_copies: 0,
+            strands_decayed: 0,
             rng,
         };
         for _ in 0..generation::INITIAL_AMINO_ACIDS {
@@ -86,11 +97,13 @@ impl PrimordialSoup {
         soup
     }
 
-    /// The molecule simulation from the launcher: 20 seed chains plus 50 water and
-    /// 50 methane molecules at 300 K, pH 7.
+    /// The molecule simulation from the launcher: 20 seed chains, 50 water and
+    /// 50 methane molecules, and the stage 3 chemistry (free nucleotides and
+    /// lipids) at 300 K, pH 7.
     pub fn standard(width: f64, height: f64) -> Self {
         let mut soup = Self::new(width, height, 300.0, 7.0);
         soup.add_small_molecules();
+        soup.add_prebiotic_chemistry();
         soup
     }
 
@@ -119,7 +132,7 @@ impl PrimordialSoup {
     }
 
     /// Advances one step: the environment, generation, mutation, recombination,
-    /// movement, then protocells. Returns the sequences that contain the target
+    /// the stage 3 chemistry, movement, then protocells. Returns the sequences that contain the target
     /// pattern after the step.
     pub fn simulate_step(&mut self) -> Vec<String> {
         self.step += 1;
@@ -129,6 +142,7 @@ impl PrimordialSoup {
         self.mutate();
         self.recombine();
         self.recombine_in_protocells();
+        self.step_chemistry();
         self.drift();
         self.update_protocells();
         self.target_matches()

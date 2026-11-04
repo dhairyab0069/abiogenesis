@@ -17,6 +17,13 @@ pub enum Kind {
     Simple(&'static str),
     /// A polypeptide, as a sequence of single-letter amino acid codes.
     AminoAcid(String),
+    /// A fatty molecule with a water-loving head and an oily tail. Lipids cling
+    /// together, and where they gather a droplet forms more easily.
+    Lipid,
+    /// One free building block of RNA: A, C, G or U.
+    Nucleotide(char),
+    /// A chain of nucleotides, written as its bases (for example "GGUACA").
+    Strand(String),
 }
 
 /// A molecule: a name (or sequence), an energy, its atoms and a position in the soup.
@@ -34,6 +41,11 @@ pub struct Molecule {
 impl Molecule {
     pub fn new(name: &'static str, energy: f64, atoms: Vec<Atom>) -> Self {
         Self { id: 0, kind: Kind::Simple(name), energy, atoms, position: Position::default() }
+    }
+
+    /// A molecule of the given kind with no position yet.
+    pub(super) fn from_kind(kind: Kind, energy: f64, atoms: Vec<Atom>) -> Self {
+        Self { id: 0, kind, energy, atoms, position: Position::default() }
     }
 
     pub fn water() -> Self {
@@ -62,13 +74,16 @@ impl Molecule {
         match &self.kind {
             Kind::Simple(name) => (*name).to_string(),
             Kind::AminoAcid(seq) => format!("AA{}", seq.len()),
+            Kind::Lipid => "Lipid".to_string(),
+            Kind::Nucleotide(_) => "Nucleotide".to_string(),
+            Kind::Strand(seq) => format!("RNA{}", seq.len()),
         }
     }
 
     pub fn sequence(&self) -> Option<&str> {
         match &self.kind {
             Kind::AminoAcid(seq) => Some(seq),
-            Kind::Simple(_) => None,
+            _ => None,
         }
     }
 

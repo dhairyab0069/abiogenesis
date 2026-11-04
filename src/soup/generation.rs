@@ -19,7 +19,7 @@ impl PrimordialSoup {
         }
     }
 
-    fn random_position(&mut self) -> Position {
+    pub(super) fn random_position(&mut self) -> Position {
         Position::new(self.rng.random::<f64>() * self.width, self.rng.random::<f64>() * self.height)
     }
 

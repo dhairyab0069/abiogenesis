@@ -1,7 +1,7 @@
 //! The molecule simulation screen: a live soup, its statistics and its canvas.
 
 use super::fps::Fps;
-use super::molecule_draw::{molecule_color, molecule_size, tooltip_text};
+use super::molecule_draw::{CATALYST_COLOR, LIPID_COLOR, base_color, molecule_color, molecule_size, tooltip_text};
 use super::{Screen, back_button};
 use crate::environment::{Environment, Preset};
 use crate::model::Molecule;
@@ -193,6 +193,12 @@ impl SoupView {
             row("Protocells", self.soup.protocells.len().to_string());
             row("In droplets", self.soup.chains_in_protocells().to_string());
             row("Formed / burst", format!("{} / {}", self.soup.protocells_formed(), self.soup.protocells_burst()));
+            row("Nucleotides", self.soup.nucleotide_count().to_string());
+            row("RNA strands", format!("{} ({} catalysts)", self.soup.strand_count(), self.soup.catalyst_count()));
+            row("Longest strand", self.soup.longest_strand().to_string());
+            row("Strand fitness", format!("{:.2}", self.soup.mean_strand_fitness()));
+            row("Copied / decayed", format!("{} / {}", self.soup.strand_copies(), self.soup.strands_decayed()));
+            row("Lipids", self.soup.lipid_count().to_string());
             row("Reactions", self.soup.total_reactions().to_string());
             row("This step", self.soup.reactions_this_step().to_string());
         });
@@ -230,10 +236,16 @@ impl SoupView {
 
         for m in &self.soup.molecules {
             let center = screen_pos(rect, m);
-            let size = molecule_size(m);
-            let color = molecule_color(m);
-            painter.circle_filled(center, size * 0.7, color.gamma_multiply(0.3));
-            painter.circle_filled(center, size * 0.5, color);
+            if let Some(seq) = m.strand_sequence() {
+                draw_strand(&painter, center, seq, m.is_catalyst());
+            } else if m.is_lipid() {
+                draw_lipid(&painter, center);
+            } else {
+                let size = molecule_size(m);
+                let color = molecule_color(m);
+                painter.circle_filled(center, size * 0.7, color.gamma_multiply(0.3));
+                painter.circle_filled(center, size * 0.5, color);
+            }
         }
 
         let hovered = response
@@ -255,6 +267,29 @@ impl SoupView {
             self.soup.resize(w, h);
         }
     }
+}
+
+/// A strand as a row of coloured beads, one per base (the first 12), with a gold
+/// halo when it is a catalyst.
+fn draw_strand(painter: &egui::Painter, center: Pos2, sequence: &str, catalyst: bool) {
+    const SPACING: f32 = 4.5;
+    let shown = sequence.chars().take(12).collect::<Vec<_>>();
+    let left = center.x - (shown.len() as f32 - 1.0) * SPACING / 2.0;
+    if catalyst {
+        let half = shown.len() as f32 * SPACING / 2.0 + 3.0;
+        painter.rect_filled(egui::Rect::from_center_size(center, egui::vec2(half * 2.0, 10.0)), 5.0, CATALYST_COLOR.gamma_multiply(0.25));
+    }
+    for (k, base) in shown.iter().enumerate() {
+        painter.circle_filled(Pos2::new(left + k as f32 * SPACING, center.y), 2.4, base_color(*base));
+    }
+}
+
+/// A lipid: a round head with two short tails.
+fn draw_lipid(painter: &egui::Painter, center: Pos2) {
+    for dx in [-1.5, 1.5] {
+        painter.line_segment([center + egui::vec2(dx, 2.0), center + egui::vec2(dx * 1.6, 8.0)], Stroke::new(1.2, LIPID_COLOR.gamma_multiply(0.7)));
+    }
+    painter.circle_filled(center, 3.2, LIPID_COLOR);
 }
 
 fn screen_pos(rect: egui::Rect, m: &Molecule) -> Pos2 {
